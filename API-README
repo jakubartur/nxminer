@@ -303,7 +303,7 @@ The list of requests - a (*) means it requires privileged access - and replies a
                               stating what failover-only was set to
 
  coin          COIN           Coin mining information:
-                              Hash Method=sha256/scrypt,
+                              Hash Method=sha256,
                               Current Block Time=N.N, <- 0 means none
                               Current Block Hash=XXXX..., <- blank if none
                               LP=true/false, <- LP is in use on at least 1 pool
@@ -889,7 +889,7 @@ However, this is only valid for variables in miner.php before the
 
  if (file_exists('myminer.php'))
   include_once('myminer.php');
- 
+
 Every variable in miner.php above those 2 lines, can be changed by
 simply defining them in your myminer.php
 
@@ -1241,7 +1241,7 @@ Looking at the Mobile example:
  $mobilepage = array(
   'DATE' => null,
   'RIGS' => null,
-  'SUMMARY' => array('Elapsed', 'MHS av', 'Found Blocks=Blks', 
+  'SUMMARY' => array('Elapsed', 'MHS av', 'Found Blocks=Blks',
 			Accepted', 'Rejected=Rej', 'Utility'),
   'DEVS+NOTIFY' => array('DEVS.Name=Name', 'DEVS.ID=ID', 'DEVS.Status=Status',
 			'DEVS.Temperature=Temp', 'DEVS.MHS av=MHS av',

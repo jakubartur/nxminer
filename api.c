@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -161,9 +162,6 @@ static const char *NULLSTR = "(null)";
 static const char *TRUESTR = "true";
 static const char *FALSESTR = "false";
 
-#ifdef USE_SCRYPT
-static const char *SCRYPTSTR = "scrypt";
-#endif
 static const char *SHA256STR = "sha256";
 
 static const char *DEVICECODE = ""
@@ -797,7 +795,7 @@ static char *escape_string(char *str, bool isjson)
 
 	buf = malloc(strlen(str) + count + 1);
 	if (unlikely(!buf))
-		quit(1, "Failed to malloc escape buf");
+		nxquit(1, "Failed to malloc escape buf");
 
 	ptr = buf;
 	while (*str)
@@ -1445,7 +1443,7 @@ static void apiversion(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __m
 	message(io_data, MSG_VERSION, 0, NULL, isjson);
 	io_open = io_add(io_data, isjson ? COMSTR JSON_VERSION : _VERSION COMSTR);
 
-	root = api_add_string(root, "CGMiner", VERSION, false);
+	root = api_add_string(root, "CGMiner", PACKAGE_VERSION, false);
 	root = api_add_const(root, "API", APIVERSION, false);
 
 	root = print_data(root, buf, isjson, false);
@@ -2193,7 +2191,6 @@ static void poolstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __m
 			root = api_add_escape(root, "Stratum URL", pool->stratum_url, false);
 		else
 			root = api_add_const(root, "Stratum URL", BLANK, false);
-		root = api_add_bool(root, "Has GBT", &(pool->has_gbt), false);
 		root = api_add_uint64(root, "Best Share", &(pool->best_diff), true);
 
 		root = print_data(root, buf, isjson, isjson && (i > 0));
@@ -2487,7 +2484,7 @@ static bool pooldetails(char *param, char **url, char **user, char **pass)
 
 	ptr = buf = malloc(strlen(param)+1);
 	if (unlikely(!buf))
-		quit(1, "Failed to malloc pooldetails buf");
+		nxquit(1, "Failed to malloc pooldetails buf");
 
 	*url = buf;
 
@@ -3190,26 +3187,23 @@ static void minecoin(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __may
 	message(io_data, MSG_MINECOIN, 0, NULL, isjson);
 	io_open = io_add(io_data, isjson ? COMSTR JSON_MINECOIN : _MINECOIN COMSTR);
 
-#ifdef USE_SCRYPT
-	if (opt_scrypt)
-		root = api_add_const(root, "Hash Method", SCRYPTSTR, false);
-	else
-#endif
-		root = api_add_const(root, "Hash Method", SHA256STR, false);
+	root = api_add_const(root, "Hash Method", SHA256STR, false);
 
 	cg_rlock(&ch_lock);
-	if (current_fullhash && *current_fullhash) {
+	if (current_fullhash && *current_fullhash)
+	{
 		root = api_add_timeval(root, "Current Block Time", &block_timeval, true);
 		root = api_add_string(root, "Current Block Hash", current_fullhash, true);
-	} else {
+	}
+	else
+	{
 		struct timeval t = {0,0};
 		root = api_add_timeval(root, "Current Block Time", &t, true);
 		root = api_add_const(root, "Current Block Hash", BLANK, false);
 	}
 	cg_runlock(&ch_lock);
 
-	root = api_add_bool(root, "LP", &have_longpoll, false);
-	root = api_add_diff(root, "Network Difficulty", &current_diff, true);
+	root = api_add_diff(root, "Network Difficulty", &current_block_diff, true);
 
 	root = print_data(root, buf, isjson, false);
 	io_add(io_data, buf);
@@ -3715,7 +3709,7 @@ static void setup_groups()
 
 	buf = malloc(strlen(api_groups) + 1);
 	if (unlikely(!buf))
-		quit(1, "Failed to malloc ipgroups buf");
+		nxquit(1, "Failed to malloc ipgroups buf");
 
 	strcpy(buf, api_groups);
 
@@ -3733,28 +3727,28 @@ static void setup_groups()
 			if (colon)
 				*colon = '\0';
 			applog(LOG_WARNING, "API invalid group name '%s'", ptr);
-			quit(1, INVAPIGROUPS);
+			nxquit(1, INVAPIGROUPS);
 		}
 
 		group = GROUP(*ptr);
 		if (!VALIDGROUP(group)) {
 			applog(LOG_WARNING, "API invalid group name '%c'", *ptr);
-			quit(1, INVAPIGROUPS);
+			nxquit(1, INVAPIGROUPS);
 		}
 
 		if (group == PRIVGROUP) {
 			applog(LOG_WARNING, "API group name can't be '%c'", PRIVGROUP);
-			quit(1, INVAPIGROUPS);
+			nxquit(1, INVAPIGROUPS);
 		}
 
 		if (group == NOPRIVGROUP) {
 			applog(LOG_WARNING, "API group name can't be '%c'", NOPRIVGROUP);
-			quit(1, INVAPIGROUPS);
+			nxquit(1, INVAPIGROUPS);
 		}
 
 		if (apigroups[GROUPOFFSET(group)].commands != NULL) {
 			applog(LOG_WARNING, "API duplicate group name '%c'", *ptr);
-			quit(1, INVAPIGROUPS);
+			nxquit(1, INVAPIGROUPS);
 		}
 
 		ptr += 2;
@@ -3790,7 +3784,7 @@ static void setup_groups()
 					}
 				} else {
 					applog(LOG_WARNING, "API unknown command '%s' in group '%c'", ptr, group);
-					quit(1, INVAPIGROUPS);
+					nxquit(1, INVAPIGROUPS);
 				}
 			}
 
@@ -3815,7 +3809,7 @@ static void setup_groups()
 
 		ptr = apigroups[GROUPOFFSET(group)].commands = malloc(strlen(commands) + 1);
 		if (unlikely(!ptr))
-			quit(1, "Failed to malloc group commands buf");
+			nxquit(1, "Failed to malloc group commands buf");
 
 		strcpy(ptr, commands);
 	}
@@ -3835,7 +3829,7 @@ static void setup_groups()
 
 	ptr = apigroups[GROUPOFFSET(NOPRIVGROUP)].commands = malloc(strlen(commands) + 1);
 	if (unlikely(!ptr))
-		quit(1, "Failed to malloc noprivgroup commands buf");
+		nxquit(1, "Failed to malloc noprivgroup commands buf");
 
 	strcpy(ptr, commands);
 
@@ -3861,7 +3855,7 @@ static void setup_ipaccess()
 
 	buf = malloc(strlen(opt_api_allow) + 1);
 	if (unlikely(!buf))
-		quit(1, "Failed to malloc ipaccess buf");
+		nxquit(1, "Failed to malloc ipaccess buf");
 
 	strcpy(buf, opt_api_allow);
 
@@ -3874,7 +3868,7 @@ static void setup_ipaccess()
 	// possibly more than needed, but never less
 	ipaccess = calloc(ipcount, sizeof(struct IP4ACCESS));
 	if (unlikely(!ipaccess))
-		quit(1, "Failed to calloc ipaccess");
+		nxquit(1, "Failed to calloc ipaccess");
 
 	ips = 0;
 	ptr = buf;
@@ -4254,13 +4248,13 @@ die:
 	if (do_a_restart) {
 		if (thr_info_create(&bye_thr, NULL, restart_thread, &bye_thr)) {
 			mutex_unlock(&quit_restart_lock);
-			quit(1, "API failed to initiate a restart - aborting");
+			nxquit(1, "API failed to initiate a restart - aborting");
 		}
 		pthread_detach(bye_thr.pth);
 	} else if (do_a_quit) {
 		if (thr_info_create(&bye_thr, NULL, quit_thread, &bye_thr)) {
 			mutex_unlock(&quit_restart_lock);
-			quit(1, "API failed to initiate a clean quit - aborting");
+			nxquit(1, "API failed to initiate a clean quit - aborting");
 		}
 		pthread_detach(bye_thr.pth);
 	}

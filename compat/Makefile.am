@@ -1,7 +1,2 @@
 
-if WANT_JANSSON
-SUBDIRS	= jansson
-else
-SUBDIRS	=
-endif
-
+SUBDIRS	= jansson-2.5

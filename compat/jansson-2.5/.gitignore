@@ -1,0 +1,8 @@
+libtool
+jansson.pc
+src/.libs/libjansson.a
+src/.libs/libjansson.lai
+src/.libs/libjansson.la
+src/libjansson.la
+src/*.lo
+src/jansson_config.h

@@ -1,0 +1,14 @@
+cgminer.c
+compat.h
+driver-cpu.c
+driver-cpu.h
+elist.h
+findnonce.c
+findnonce.h
+logging.c
+logging.h
+miner.h
+sha256_generic.c
+uthash.h
+util.c
+util.h
