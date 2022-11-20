@@ -73,16 +73,16 @@ extern void _applog(int prio, const char *str, bool force);
 
 #ifdef HAVE_CURSES
 
-#define wlog(fmt, ...) do { \
-	char tmp42[LOGBUFSIZ]; \
-	snprintf(tmp42, sizeof(tmp42), fmt, ##__VA_ARGS__); \
-	_wlog(tmp42); \
+#define wlog(fmt, ...) do {                                            \
+	char tmp42[LOGBUFSIZ];                                             \
+	snprintf(tmp42, sizeof(tmp42), fmt, ##__VA_ARGS__);                \
+	_wlog(tmp42);                                                      \
 } while (0)
 
-#define wlogprint(fmt, ...) do { \
-	char tmp42[LOGBUFSIZ]; \
-	snprintf(tmp42, sizeof(tmp42), fmt, ##__VA_ARGS__); \
-	_wlogprint(tmp42); \
+#define wlogprint(fmt, ...) do {                                       \
+	char tmp42[LOGBUFSIZ];                                             \
+	snprintf(tmp42, sizeof(tmp42), fmt, ##__VA_ARGS__);                \
+	_wlogprint(tmp42);                                                 \
 } while (0)
 
 #endif
