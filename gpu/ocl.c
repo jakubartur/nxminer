@@ -379,40 +379,10 @@ _clState *initCl(unsigned int gpu, char *name, size_t nameSize)
 	char filename[255];
 	char numbuf[16];
 
-	if (cgpu->kernel == KL_NONE) {
-		if (!strstr(name, "Tahiti") &&
-			/* Detect all 2.6 SDKs not with Tahiti and use diablo kernel */
-			(strstr(vbuff, "844.4") ||  // Linux 64 bit ATI 2.6 SDK
-			 strstr(vbuff, "851.4") ||  // Windows 64 bit ""
-			 strstr(vbuff, "831.4") ||
-			 strstr(vbuff, "898.1") ||  // 12.2 driver SDK
-			 strstr(vbuff, "923.1") ||  // 12.4
-			 strstr(vbuff, "938.2") ||  // SDK 2.7
-			 strstr(vbuff, "1113.2"))) {// SDK 2.8
-				applog(LOG_INFO, "Selecting diablo kernel");
-				clState->chosen_kernel = KL_DIABLO;
-		/* Detect all 7970s, older ATI and NVIDIA and use poclbm */
-		} else if (strstr(name, "Tahiti") || !clState->hasBitAlign) {
-			applog(LOG_INFO, "Selecting poclbm kernel");
-			clState->chosen_kernel = KL_POCLBM;
-		/* Use phatk for the rest R5xxx R6xxx */
-		} else {
-			applog(LOG_INFO, "Selecting phatk kernel");
-			clState->chosen_kernel = KL_PHATK;
-		}
+	if (cgpu->kernel == KL_NONE)
+    {
+		clState->chosen_kernel = KL_DIABLO;
 		cgpu->kernel = clState->chosen_kernel;
-	} else {
-		clState->chosen_kernel = cgpu->kernel;
-		if (clState->chosen_kernel == KL_PHATK &&
-		    (strstr(vbuff, "844.4") || strstr(vbuff, "851.4") ||
-		     strstr(vbuff, "831.4") || strstr(vbuff, "898.1") ||
-		     strstr(vbuff, "923.1") || strstr(vbuff, "938.2") ||
-		     strstr(vbuff, "1113.2"))) {
-			applog(LOG_WARNING, "WARNING: You have selected the phatk kernel.");
-			applog(LOG_WARNING, "You are running SDK 2.6+ which performs poorly with this kernel.");
-			applog(LOG_WARNING, "Downgrade your SDK and delete any .bin files before starting again.");
-			applog(LOG_WARNING, "Or allow cgminer to automatically choose a more suitable kernel.");
-		}
 	}
 
 	/* For some reason 2 vectors is still better even if the card says
@@ -423,19 +393,8 @@ _clState *initCl(unsigned int gpu, char *name, size_t nameSize)
 	else if (preferred_vwidth > 2)
 		preferred_vwidth = 2;
 
-	switch (clState->chosen_kernel) {
-		case KL_POCLBM:
-			strcpy(filename, POCLBM_KERNNAME".cl");
-			strcpy(binaryfilename, POCLBM_KERNNAME);
-			break;
-		case KL_PHATK:
-			strcpy(filename, PHATK_KERNNAME".cl");
-			strcpy(binaryfilename, PHATK_KERNNAME);
-			break;
-		case KL_DIAKGCN:
-			strcpy(filename, DIAKGCN_KERNNAME".cl");
-			strcpy(binaryfilename, DIAKGCN_KERNNAME);
-			break;
+	switch (clState->chosen_kernel)
+    {
 		case KL_NONE: /* Shouldn't happen */
 		case KL_DIABLO:
 			strcpy(filename, DIABLO_KERNNAME".cl");
@@ -450,9 +409,10 @@ _clState *initCl(unsigned int gpu, char *name, size_t nameSize)
 		cgpu->vwidth = preferred_vwidth;
 	}
 
-	if (((clState->chosen_kernel == KL_POCLBM || clState->chosen_kernel == KL_DIABLO || clState->chosen_kernel == KL_DIAKGCN) &&
-		clState->vwidth == 1 && clState->hasOpenCL11plus))
+	if (clState->chosen_kernel == KL_DIABLO && clState->vwidth == 1 && clState->hasOpenCL11plus)
+    {
 			clState->goffset = true;
+        }
 
 	if (cgpu->work_size && cgpu->work_size <= clState->max_work_size)
 		clState->wsize = cgpu->work_size;

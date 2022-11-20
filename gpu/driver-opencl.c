@@ -130,12 +130,6 @@ static enum cl_kernels select_kernel(char *arg)
 {
 	if (!strcmp(arg, "diablo"))
 		return KL_DIABLO;
-	if (!strcmp(arg, "diakgcn"))
-		return KL_DIAKGCN;
-	if (!strcmp(arg, "poclbm"))
-		return KL_POCLBM;
-	if (!strcmp(arg, "phatk"))
-		return KL_PHATK;
 	return KL_NONE;
 }
 
@@ -775,164 +769,6 @@ static _clState *clStates[MAX_GPUDEVICES];
 #define CL_SET_ARG(var) status |= clSetKernelArg(*kernel, num++, sizeof(var), (void *)&var)
 #define CL_SET_VARG(args, var) status |= clSetKernelArg(*kernel, num++, args * sizeof(uint), (void *)var)
 
-static cl_int queue_poclbm_kernel(_clState *clState, dev_blk_ctx *blk, cl_uint threads)
-{
-	cl_kernel *kernel = &clState->kernel;
-	unsigned int num = 0;
-	cl_int status = 0;
-
-	CL_SET_BLKARG(ctx_a);
-	CL_SET_BLKARG(ctx_b);
-	CL_SET_BLKARG(ctx_c);
-	CL_SET_BLKARG(ctx_d);
-	CL_SET_BLKARG(ctx_e);
-	CL_SET_BLKARG(ctx_f);
-	CL_SET_BLKARG(ctx_g);
-	CL_SET_BLKARG(ctx_h);
-
-	CL_SET_BLKARG(cty_b);
-	CL_SET_BLKARG(cty_c);
-
-
-	CL_SET_BLKARG(cty_f);
-	CL_SET_BLKARG(cty_g);
-	CL_SET_BLKARG(cty_h);
-
-	if (!clState->goffset) {
-		cl_uint vwidth = clState->vwidth;
-		uint *nonces = alloca(sizeof(uint) * vwidth);
-		unsigned int i;
-
-		for (i = 0; i < vwidth; i++)
-			nonces[i] = blk->nonce + (i * threads);
-		CL_SET_VARG(vwidth, nonces);
-	}
-
-	CL_SET_BLKARG(fW0);
-	CL_SET_BLKARG(fW1);
-	CL_SET_BLKARG(fW2);
-	CL_SET_BLKARG(fW3);
-	CL_SET_BLKARG(fW15);
-	CL_SET_BLKARG(fW01r);
-
-	CL_SET_BLKARG(D1A);
-	CL_SET_BLKARG(C1addK5);
-	CL_SET_BLKARG(B1addK6);
-	CL_SET_BLKARG(W16addK16);
-	CL_SET_BLKARG(W17addK17);
-	CL_SET_BLKARG(PreVal4addT1);
-	CL_SET_BLKARG(PreVal0);
-
-	CL_SET_ARG(clState->outputBuffer);
-
-	return status;
-}
-
-static cl_int queue_phatk_kernel(_clState *clState, dev_blk_ctx *blk,
-				 __maybe_unused cl_uint threads)
-{
-	cl_kernel *kernel = &clState->kernel;
-	cl_uint vwidth = clState->vwidth;
-	unsigned int i, num = 0;
-	cl_int status = 0;
-	uint *nonces;
-
-	CL_SET_BLKARG(ctx_a);
-	CL_SET_BLKARG(ctx_b);
-	CL_SET_BLKARG(ctx_c);
-	CL_SET_BLKARG(ctx_d);
-	CL_SET_BLKARG(ctx_e);
-	CL_SET_BLKARG(ctx_f);
-	CL_SET_BLKARG(ctx_g);
-	CL_SET_BLKARG(ctx_h);
-
-	CL_SET_BLKARG(cty_b);
-	CL_SET_BLKARG(cty_c);
-	CL_SET_BLKARG(cty_d);
-	CL_SET_BLKARG(cty_f);
-	CL_SET_BLKARG(cty_g);
-	CL_SET_BLKARG(cty_h);
-
-	nonces = alloca(sizeof(uint) * vwidth);
-	for (i = 0; i < vwidth; i++)
-		nonces[i] = blk->nonce + i;
-	CL_SET_VARG(vwidth, nonces);
-
-	CL_SET_BLKARG(W16);
-	CL_SET_BLKARG(W17);
-	CL_SET_BLKARG(PreVal4_2);
-	CL_SET_BLKARG(PreVal0);
-	CL_SET_BLKARG(PreW18);
-	CL_SET_BLKARG(PreW19);
-	CL_SET_BLKARG(PreW31);
-	CL_SET_BLKARG(PreW32);
-
-	CL_SET_ARG(clState->outputBuffer);
-
-	return status;
-}
-
-static cl_int queue_diakgcn_kernel(_clState *clState, dev_blk_ctx *blk,
-				   __maybe_unused cl_uint threads)
-{
-	cl_kernel *kernel = &clState->kernel;
-	unsigned int num = 0;
-	cl_int status = 0;
-
-	if (!clState->goffset) {
-		cl_uint vwidth = clState->vwidth;
-		uint *nonces = alloca(sizeof(uint) * vwidth);
-		unsigned int i;
-		for (i = 0; i < vwidth; i++)
-			nonces[i] = blk->nonce + i;
-		CL_SET_VARG(vwidth, nonces);
-	}
-
-	CL_SET_BLKARG(PreVal0);
-	CL_SET_BLKARG(PreVal4_2);
-	CL_SET_BLKARG(cty_h);
-	CL_SET_BLKARG(D1A);
-	CL_SET_BLKARG(cty_b);
-	CL_SET_BLKARG(cty_c);
-	CL_SET_BLKARG(cty_f);
-	CL_SET_BLKARG(cty_g);
-	CL_SET_BLKARG(C1addK5);
-	CL_SET_BLKARG(B1addK6);
-	CL_SET_BLKARG(PreVal0addK7);
-	CL_SET_BLKARG(W16addK16);
-	CL_SET_BLKARG(W17addK17);
-	CL_SET_BLKARG(PreW18);
-	CL_SET_BLKARG(PreW19);
-	CL_SET_BLKARG(W16);
-	CL_SET_BLKARG(W17);
-	CL_SET_BLKARG(PreW31);
-	CL_SET_BLKARG(PreW32);
-
-	CL_SET_BLKARG(ctx_a);
-	CL_SET_BLKARG(ctx_b);
-	CL_SET_BLKARG(ctx_c);
-	CL_SET_BLKARG(ctx_d);
-	CL_SET_BLKARG(ctx_e);
-	CL_SET_BLKARG(ctx_f);
-	CL_SET_BLKARG(ctx_g);
-	CL_SET_BLKARG(ctx_h);
-
-	CL_SET_BLKARG(zeroA);
-	CL_SET_BLKARG(zeroB);
-
-	CL_SET_BLKARG(oneA);
-	CL_SET_BLKARG(twoA);
-	CL_SET_BLKARG(threeA);
-	CL_SET_BLKARG(fourA);
-	CL_SET_BLKARG(fiveA);
-	CL_SET_BLKARG(sixA);
-	CL_SET_BLKARG(sevenA);
-
-	CL_SET_ARG(clState->outputBuffer);
-
-	return status;
-}
-
 static cl_int queue_diablo_kernel(_clState *clState, dev_blk_ctx *blk, cl_uint threads)
 {
 	cl_kernel *kernel = &clState->kernel;
@@ -1255,15 +1091,6 @@ static bool opencl_thread_prepare(struct thr_info *thr)
 			case KL_DIABLO:
 				cgpu->kname = "diablo";
 				break;
-			case KL_DIAKGCN:
-				cgpu->kname = "diakgcn";
-				break;
-			case KL_PHATK:
-				cgpu->kname = "phatk";
-				break;
-			case KL_POCLBM:
-				cgpu->kname = "poclbm";
-				break;
 			default:
 				break;
 		}
@@ -1292,16 +1119,8 @@ static bool opencl_thread_init(struct thr_info *thr)
 		return false;
 	}
 
-	switch (clState->chosen_kernel) {
-		case KL_POCLBM:
-			thrdata->queue_kernel_parameters = &queue_poclbm_kernel;
-			break;
-		case KL_PHATK:
-			thrdata->queue_kernel_parameters = &queue_phatk_kernel;
-			break;
-		case KL_DIAKGCN:
-			thrdata->queue_kernel_parameters = &queue_diakgcn_kernel;
-			break;
+	switch (clState->chosen_kernel)
+    {
 		default:
 		case KL_DIABLO:
 			thrdata->queue_kernel_parameters = &queue_diablo_kernel;
@@ -1372,49 +1191,52 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work, uint8_t
 
 	set_threads_hashes(clState->vwidth, &hashes, globalThreads, localThreads[0], &gpu->intensity);
 	if (hashes > gpu->max_hashes)
+    {
 		gpu->max_hashes = hashes;
-
+    }
 	status = thrdata->queue_kernel_parameters(clState, &work->blk, globalThreads[0]);
-	if (unlikely(status != CL_SUCCESS)) {
+	if (unlikely(status != CL_SUCCESS))
+    {
 		applog(LOG_ERR, "Error: clSetKernelArg of all params failed.");
 		return -1;
 	}
-
-	if (clState->goffset) {
+	if (clState->goffset)
+    {
 		size_t global_work_offset[1];
 
 		global_work_offset[0] = work->blk.nonce;
 		status = clEnqueueNDRangeKernel(clState->commandQueue, *kernel, 1, global_work_offset,
 						globalThreads, localThreads, 0,  NULL, NULL);
-	} else
+	}
+    else
+    {
 		status = clEnqueueNDRangeKernel(clState->commandQueue, *kernel, 1, NULL,
 						globalThreads, localThreads, 0,  NULL, NULL);
-	if (unlikely(status != CL_SUCCESS)) {
+    }
+	if (unlikely(status != CL_SUCCESS))
+    {
 		applog(LOG_ERR, "Error %d: Enqueueing kernel onto command queue. (clEnqueueNDRangeKernel)", status);
 		return -1;
 	}
-
-	status = clEnqueueReadBuffer(clState->commandQueue, clState->outputBuffer, CL_FALSE, 0,
-			BUFFERSIZE, thrdata->res, 0, NULL, NULL);
-	if (unlikely(status != CL_SUCCESS)) {
+	status = clEnqueueReadBuffer(clState->commandQueue, clState->outputBuffer, CL_FALSE, 0, BUFFERSIZE, thrdata->res, 0, NULL, NULL);
+	if (unlikely(status != CL_SUCCESS))
+    {
 		applog(LOG_ERR, "Error: clEnqueueReadBuffer failed error %d. (clEnqueueReadBuffer)", status);
 		return -1;
 	}
-
 	/* The amount of work scanned can fluctuate when intensity changes
 	 * and since we do this one cycle behind, we increment the work more
 	 * than enough to prevent repeating work */
 	work->blk.nonce += gpu->max_hashes;
-
 	/* This finish flushes the readbuffer set with CL_FALSE in clEnqueueReadBuffer */
 	clFinish(clState->commandQueue);
-
 	/* FOUND entry is used as a counter to say how many nonces exist */
-	if (thrdata->res[FOUND]) {
+	if (thrdata->res[FOUND])
+    {
 		/* Clear the buffer again */
-		status = clEnqueueWriteBuffer(clState->commandQueue, clState->outputBuffer, CL_FALSE, 0,
-				BUFFERSIZE, blank_res, 0, NULL, NULL);
-		if (unlikely(status != CL_SUCCESS)) {
+		status = clEnqueueWriteBuffer(clState->commandQueue, clState->outputBuffer, CL_FALSE, 0, BUFFERSIZE, blank_res, 0, NULL, NULL);
+		if (unlikely(status != CL_SUCCESS))
+        {
 			applog(LOG_ERR, "Error: clEnqueueWriteBuffer failed.");
 			return -1;
 		}
@@ -1424,7 +1246,6 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work, uint8_t
 		/* This finish flushes the writebuffer set with CL_FALSE in clEnqueueWriteBuffer */
 		clFinish(clState->commandQueue);
 	}
-
 	return hashes;
 }
 

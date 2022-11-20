@@ -3266,15 +3266,6 @@ void write_config(FILE* fcfg)
             {
             case KL_NONE: // Shouldn't happen
                 break;
-            case KL_POCLBM:
-                fprintf(fcfg, "poclbm");
-                break;
-            case KL_PHATK:
-                fprintf(fcfg, "phatk");
-                break;
-            case KL_DIAKGCN:
-                fprintf(fcfg, "diakgcn");
-                break;
             case KL_DIABLO:
                 fprintf(fcfg, "diablo");
                 break;

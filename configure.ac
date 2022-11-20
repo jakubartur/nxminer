@@ -459,10 +459,6 @@ if test "x$prefix" = xNONE; then
 fi
 
 AC_DEFINE_UNQUOTED([NXMINER_PREFIX], ["$prefix/bin"], [Path to nxminer install])
-
-AC_DEFINE_UNQUOTED([PHATK_KERNNAME], ["phatk121016"], [Filename for phatk kernel])
-AC_DEFINE_UNQUOTED([POCLBM_KERNNAME], ["poclbm130302"], [Filename for poclbm kernel])
-AC_DEFINE_UNQUOTED([DIAKGCN_KERNNAME], ["diakgcn121016"], [Filename for diakgcn kernel])
 AC_DEFINE_UNQUOTED([DIABLO_KERNNAME], ["diablo130302"], [Filename for diablo kernel])
 
 AC_SUBST(OPENCL_LIBS)
