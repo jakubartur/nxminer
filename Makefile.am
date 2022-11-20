@@ -46,13 +46,9 @@ nxminer_SOURCES	+= elist.h miner.h compat.h bench_block.h 		\
 
 nxminer_SOURCES	+= logging.c
 
-if HAS_OPENCL
-# GPU sources, TODO: make them selectable
-# the GPU portion extracted from original main.c
+# the GPU source
 nxminer_SOURCES += gpu/driver-opencl.h gpu/driver-opencl.c
-# the original GPU related sources, unchanged
 nxminer_SOURCES += gpu/ocl.c gpu/ocl.h gpu/findnonce.c gpu/findnonce.h
-endif # HAS_OPENCL
 
 if HAS_ADL
 nxminer_SOURCES += gpu/adl.c gpu/adl.h gpu/adl_functions.h
