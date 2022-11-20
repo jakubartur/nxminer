@@ -361,15 +361,15 @@ AC_ARG_WITH([curses],
 if test "x$curses" = "xno"; then
 	cursesmsg='User specified --without-curses. TUI support DISABLED'
 else
-	AC_SEARCH_LIBS(addstr, ncurses pdcurses, [
+	AC_SEARCH_LIBS(addstr, ncurses, [
 		curses=yes
 		cursesmsg="FOUND: ${ac_cv_search_addstr}"
 		AC_DEFINE([HAVE_CURSES], [1], [Defined to 1 if curses TUI support is wanted])
 	], [
 		if test "x$curses" = "xyes"; then
-			AC_MSG_ERROR([Could not find curses library - please install libncurses-dev or pdcurses-dev (or configure --without-curses)])
+			AC_MSG_ERROR([Could not find curses library - please install libncurses-dev (or configure --without-curses)])
 		else
-			AC_MSG_WARN([Could not find curses library - if you want a TUI, install libncurses-dev or pdcurses-dev])
+			AC_MSG_WARN([Could not find curses library - if you want a TUI, install libncurses-dev])
 			curses=no
 			cursesmsg='NOT FOUND. TUI support DISABLED'
 		fi
@@ -481,7 +481,6 @@ AC_SUBST(PTHREAD_FLAGS)
 AC_SUBST(DLOPEN_FLAGS)
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(NCURSES_LIBS)
-AC_SUBST(PDCURSES_LIBS)
 AC_SUBST(WS2_LIBS)
 AC_SUBST(MATH_LIBS)
 AC_SUBST(CRYPTO_LIBS)
@@ -545,7 +544,7 @@ echo "  CC...................: $CC"
 echo "  CFLAGS...............: $CFLAGS"
 echo "  CPPFLAGS.............: $CPPFLAGS"
 echo "  LDFLAGS..............: $LDFLAGS $PTHREAD_FLAGS"
-echo "  LDADD................: $DLOPEN_FLAGS $LIBCURL_LIBS $JANSSON_LIBS $PTHREAD_LIBS $OPENCL_LIBS $NCURSES_LIBS $PDCURSES_LIBS $WS2_LIBS $MATH_LIBS"
+echo "  LDADD................: $DLOPEN_FLAGS $LIBCURL_LIBS $JANSSON_LIBS $PTHREAD_LIBS $OPENCL_LIBS $NCURSES_LIBS $WS2_LIBS $MATH_LIBS"
 echo
 echo "Installation...........: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix...............: $prefix"

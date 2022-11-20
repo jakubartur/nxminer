@@ -89,7 +89,7 @@ Dependencies:
 	(libcurl4-openssl-dev)
 
 	curses dev library
-	(libncurses5-dev or libpdcurses on WIN32)
+	(libncurses-dev)
 
 	pkg-config		http://www.freedesktop.org/wiki/Software/pkg-config
 	libtool			http://www.gnu.org/software/libtool/

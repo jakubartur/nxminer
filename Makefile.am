@@ -25,33 +25,22 @@ bin_SCRIPTS	= *.cl
 
 nxminer_LDFLAGS	= $(PTHREAD_FLAGS)
 nxminer_LDADD	= $(DLOPEN_FLAGS) @LIBCURL_LIBS@ @JANSSON_LIBS@ @PTHREAD_LIBS@ \
-		  @OPENCL_LIBS@ @NCURSES_LIBS@ @PDCURSES_LIBS@ @WS2_LIBS@ \
+		  @OPENCL_LIBS@ @NCURSES_LIBS@ @WS2_LIBS@ \
 		  @MATH_LIBS@ @SSL_LIBS@ @CRYPTO_LIBS@ lib/libgnu.a ccan/libccan.a \
 		  $(LIBSECP256K1)
 
 
 nxminer_CPPFLAGS = -I$(top_builddir)/lib -I$(top_srcdir)/lib -I$(top_builddir)/secp256k1/include \
- 					@OPENCL_FLAGS@ $(CRYPTO_CFLAGS) $(SSL_CFLAGS) $(nxminer_INCLUDES)
-
-if !HAVE_WINDOWS
-nxminer_CPPFLAGS += @LIBCURL_CFLAGS@
-endif
+ 					@OPENCL_FLAGS@ $(CRYPTO_CFLAGS) $(SSL_CFLAGS) $(nxminer_INCLUDES) @LIBCURL_CFLAGS@
 
 # common sources
-nxminer_SOURCES := cgminer.c
-
-nxminer_SOURCES	+= elist.h miner.h compat.h bench_block.h 		\
-		   uint256.c uint256.h util.c util.h uthash.h logging.h \
-		   sha2.c sha2.h api.c
-
-nxminer_SOURCES	+= logging.c
+nxminer_SOURCES := cgminer.c uint256.c util.c sha2.c sha2.h api.c logging.c
 
 # the GPU source
-nxminer_SOURCES += gpu/driver-opencl.h gpu/driver-opencl.c
-nxminer_SOURCES += gpu/ocl.c gpu/ocl.h gpu/findnonce.c gpu/findnonce.h
+nxminer_SOURCES += gpu/driver-opencl.c gpu/ocl.c gpu/findnonce.c
 
 if HAS_ADL
-nxminer_SOURCES += gpu/adl.c gpu/adl.h gpu/adl_functions.h
+nxminer_SOURCES += gpu/adl.c
 endif # HAS_ADL
 nxminer_SOURCES += *.cl
 
