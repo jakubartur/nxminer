@@ -330,9 +330,13 @@ AC_ARG_ENABLE([adl],
 	[adl=$enableval]
 	)
 
+have_adl=false
+
 if test "$found_opencl" = 1; then
 	if test "x$adl" != xno; then
-		AC_CHECK_FILE([gpu/adl_sdk/adl_sdk.h], have_adl=true, have_adl=false,)
+        if test -f "gpu/adl_sdk/adl_sdk.h"; then
+		      have_adl=true
+        fi
 		if test x$have_adl = xtrue
 		then
 			AC_DEFINE([HAVE_ADL], [1], [Defined if ADL headers were found])
