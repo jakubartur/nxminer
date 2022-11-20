@@ -53,7 +53,6 @@ extern bool have_opencl;
 extern void *miner_thread(void *userdata);
 extern int dev_from_id(int thr_id);
 extern void tailsprintf(char *f, const char *fmt, ...);
-extern void wlog(const char *f, ...);
 extern void decay_time(double *f, double fadd);
 
 /**********************************************/
@@ -1334,14 +1333,12 @@ static bool opencl_thread_init(struct thr_info *thr)
 
 static bool opencl_prepare_work(struct thr_info __maybe_unused *thr, struct work *work)
 {
-	precalc_hash(&work->blk, (uint32_t *)(work->midstate), (uint32_t *)(work->data + 64));
 	return true;
 }
 
 extern int opt_dynamic_interval;
 
-static int64_t opencl_scanhash(struct thr_info *thr, struct work *work,
-				int64_t __maybe_unused max_nonce)
+static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work, uint8_t max_nonce[16])
 {
 	const int thr_id = thr->id;
 	struct opencl_thread_data *thrdata = thr->cgpu_data;

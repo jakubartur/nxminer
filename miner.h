@@ -923,7 +923,7 @@ typedef struct
     cl_uint merkle;
     cl_uint ntime;
     cl_uint nbits;
-    cl_uint nonce;
+    cl_uint* nonce;
     cl_uint fW0;
     cl_uint fW1;
     cl_uint fW2;
@@ -1156,7 +1156,7 @@ extern void write_config(FILE* fcfg);
 extern void zero_bestshare(void);
 extern void zero_stats(void);
 extern void default_save_file(char* filename);
-extern bool log_curses_only(int prio, const char* f, va_list ap);
+extern bool log_curses_only(int prio, const char *datetime, const char *str);
 extern void clear_logwin(void);
 extern bool pool_tclear(struct pool* pool, bool* var);
 extern struct thread_q* tq_new(void);

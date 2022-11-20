@@ -1857,28 +1857,26 @@ void _wlogprint(const char *str)
 	}
 }
 
-bool log_curses_only(int prio, const char* f, va_list ap)
+bool log_curses_only(int prio, const char *datetime, const char *str)
 {
-    bool high_prio;
+	bool high_prio;
 
-    high_prio = (prio == LOG_WARNING || prio == LOG_ERR);
+	high_prio = (prio == LOG_WARNING || prio == LOG_ERR);
 
-    if (curses_active_locked())
-    {
-        if (!opt_loginput || high_prio)
-        {
-            vw_printw(logwin, f, ap);
-            if (high_prio)
-            {
-                touchwin(logwin);
-                wrefresh(logwin);
-            }
-        }
-        unlock_curses();
-        return true;
-    }
-    return false;
+	if (curses_active_locked()) {
+		if (!opt_loginput || high_prio) {
+			wprintw(logwin, "%s%s\n", datetime, str);
+			if (high_prio) {
+				touchwin(logwin);
+				wrefresh(logwin);
+			}
+		}
+		unlock_curses();
+		return true;
+	}
+	return false;
 }
+
 
 void clear_logwin(void)
 {

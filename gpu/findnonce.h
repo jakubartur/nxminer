@@ -9,7 +9,6 @@
 #define FOUND      (0x0F)
 
 #ifdef HAVE_OPENCL
-extern void precalc_hash(dev_blk_ctx* blk, uint32_t* state, uint32_t* data);
 extern void postcalc_hash_async(struct thr_info* thr, struct work* work, uint32_t* res);
 #endif /* HAVE_OPENCL */
 #endif /*__FINDNONCE_H__*/
