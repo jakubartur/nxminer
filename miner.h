@@ -20,11 +20,7 @@
 #include <secp256k1_schnorr.h>
 
 #ifdef HAVE_OPENCL
-#ifdef __APPLE_CC__
-#include <OpenCL/opencl.h>
-#else
-#include <CL/cl.h>
-#endif
+#include "gpu/opencl/opencl.h"
 #endif /* HAVE_OPENCL */
 
 #ifdef STDC_HEADERS

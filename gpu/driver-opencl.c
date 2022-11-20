@@ -517,7 +517,7 @@ void print_ndevs(int *ndevs)
 }
 #endif
 
-struct cgpu_info gpus[MAX_GPUDEVICES]; /* Maximum number apparently possible */
+extern struct cgpu_info gpus[MAX_GPUDEVICES];
 
 #ifdef HAVE_OPENCL
 

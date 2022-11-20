@@ -5,11 +5,7 @@
 
 #include <stdbool.h>
 #ifdef HAVE_OPENCL
-#ifdef __APPLE_CC__
-#include <OpenCL/opencl.h>
-#else
-#include <CL/cl.h>
-#endif
+#include "opencl/opencl.h"
 
 #include "miner.h"
 

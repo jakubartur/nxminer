@@ -280,23 +280,14 @@ if test "x$opencl" != xno; then
 	SAVED_CFLAGS=$CFLAGS
 	LIBS="$LIBS $OPENCL_LIBS"
 	CFLAGS="$CFLAGS $OPENCL_FLAGS"
-	AC_LINK_IFELSE(
-	[AC_LANG_PROGRAM([[
-		#ifdef __APPLE_CC__
-		#include <OpenCL/opencl.h>
-		#else
-		#include <CL/cl.h>
-		#endif
-	]],
-	[[return clSetKernelArg(0, 0, 0, 0); ]])],
-	[AC_MSG_RESULT(yes)
-	AC_DEFINE([HAVE_OPENCL], [1], [Defined to 1 if OpenCL is present on the system.])
-	found_opencl=1
-	],
-	[AC_MSG_RESULT(no)
-	OPENCL_FLAGS=
-	OPENCL_LIBS=
-	found_opencl=0])
+    if test -f "gpu/opencl/opencl.h"; then
+	   AC_DEFINE([HAVE_OPENCL], [1], [Defined to 1 if OpenCL is present on the system.])
+	   found_opencl=1
+	else
+	   OPENCL_FLAGS=""
+	   OPENCL_LIBS=""
+	   found_opencl=0
+    fi
 	LIBS=$SAVED_LIBS
 	CFLAGS=$SAVED_CFLAGS
 else
