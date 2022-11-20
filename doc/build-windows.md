@@ -11,7 +11,7 @@ sudo apt-get install g++-mingw-w64-x86-64 mingw-w64-x86-64-dev autoconf automake
 
 cd depends
 
-make HOST=x86_64-w64-mingw32
+make HOST=x86_64-w64-mingw32 -j`nproc`
 
 cd..
 ```
@@ -21,7 +21,7 @@ cd..
 ```
 ./autogen.sh
 
-CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/ --disable-shared --enable-static-build
+CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/ --disable-shared --enable-static-build  
 
-make
+make -j`nproc`
 ```
