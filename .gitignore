@@ -52,3 +52,5 @@ lib/warn-on-use.h
 mkinstalldirs
 
 test-driver
+
+gpu/.dirstamp
