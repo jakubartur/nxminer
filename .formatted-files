@@ -1,7 +1,5 @@
 cgminer.c
 compat.h
-driver-cpu.c
-driver-cpu.h
 elist.h
 findnonce.c
 findnonce.h

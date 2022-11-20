@@ -59,29 +59,6 @@ nxminer_SOURCES += gpu/adl.c gpu/adl.h gpu/adl_functions.h
 endif # HAS_ADL
 nxminer_SOURCES += *.cl
 
-if HAS_CPUMINE
-# original CPU related sources, unchanged
-nxminer_SOURCES	+= \
-		  sha256_generic.c sha256_4way.c sha256_via.c	\
-		  sha256_cryptopp.c sha256_sse2_amd64.c		\
-		  sha256_sse4_amd64.c sha256_sse2_i386.c	\
-		  sha256_altivec_4way.c
-
-# the CPU portion extracted from original main.c
-nxminer_SOURCES += driver-cpu.h driver-cpu.c
-
-if HAS_YASM
-AM_CFLAGS	= -DHAS_YASM
-if HAVE_x86_64
-SUBDIRS		+= x86_64
-nxminer_LDADD	+= x86_64/libx8664.a
-else # HAVE_x86_64
-SUBDIRS		+= x86_32
-nxminer_LDADD	+= x86_32/libx8632.a
-endif # HAVE_x86_64
-endif # HAS_YASM
-endif # HAS_CPUMINE
-
 check-formatting:
 	@echo "Checking source formatting style..."
 	(./linter/clang-format.py check clang-format-12 `cat ./.formatted-files`)

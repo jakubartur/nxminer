@@ -267,18 +267,7 @@ if test "x$have_win32" != xtrue; then
 	fi
 fi
 
-cpumining="yes"
-
-AC_ARG_ENABLE([cpumining],
-	[AS_HELP_STRING([--enable-cpumining],[Build with cpu mining support(default enabled)])],
-	[cpumining=$enableval]
-	)
-if test "x$cpumining" = xyes; then
-	AC_DEFINE_UNQUOTED([WANT_CPUMINE], [1], [Enable CPUMINING])
-fi
-AM_CONDITIONAL([HAS_CPUMINE], [test x$cpumining = xyes])
-
-opencl="no"
+opencl="yes"
 
 AC_ARG_ENABLE([opencl],
 	[AS_HELP_STRING([--disable-opencl],[Override detection and disable building with opencl])],
@@ -497,8 +486,6 @@ AC_SUBST(SSL_LIBS)
 AC_CONFIG_FILES([
 	Makefile
 	compat/Makefile
-	x86_64/Makefile
-	x86_32/Makefile
 	ccan/Makefile
 	lib/Makefile
 	])
@@ -527,15 +514,11 @@ if test "x$opencl" != xno; then
 		echo "  OpenCL...............: FOUND. GPU mining support enabled"
 	else
 		echo "  OpenCL...............: NOT FOUND. GPU mining support DISABLED"
-		if test "x$cpumining" = xno; then
-			AC_MSG_ERROR([No mining configured in])
-		fi
+		AC_MSG_ERROR([No mining configured in])
 	fi
 else
 	echo "  OpenCL...............: Detection overrided. GPU mining support DISABLED"
-	if test "x$cpumining" = xno; then
-		AC_MSG_ERROR([No mining configured in])
-	fi
+	AC_MSG_ERROR([No mining configured in])
 fi
 
 if test "x$adl" != xno; then
@@ -546,14 +529,6 @@ if test "x$adl" != xno; then
 	fi
 else
 	echo "  ADL..................: Detection overrided. GPU monitoring support DISABLED"
-fi
-
-echo
-
-if test "x$cpumining" = xyes; then
-	echo
-	echo "  CPU Mining...........: Enabled"
-	echo "  ASM.(for CPU mining).: $has_yasm"
 fi
 
 echo

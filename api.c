@@ -28,7 +28,6 @@
 #include "compat.h"
 #include "miner.h"
 #include "util.h"
-#include "driver-cpu.h" /* for algo_names[], TODO: re-factor dependency */
 
 #if defined(USE_BFLSC)
 #define HAVE_AN_ASIC 1
@@ -168,24 +167,6 @@ static const char *DEVICECODE = ""
 #ifdef HAVE_OPENCL
 			"GPU "
 #endif
-#ifdef USE_BFLSC
-			"BAS "
-#endif
-#ifdef USE_BITFORCE
-			"BFL "
-#endif
-#ifdef USE_ICARUS
-			"ICA "
-#endif
-#ifdef USE_ZTEX
-			"ZTX "
-#endif
-#ifdef USE_MODMINER
-			"MMQ "
-#endif
-#ifdef WANT_CPUMINE
-			"CPU "
-#endif
 			"";
 
 static const char *OSINFO =
@@ -217,10 +198,6 @@ static const char *OSINFO =
 
 #ifdef HAVE_AN_FPGA
 #define _PGA		"PGA"
-#endif
-
-#ifdef WANT_CPUMINE
-#define _CPU		"CPU"
 #endif
 
 #define _GPUS		"GPUS"
@@ -260,10 +237,6 @@ static const char ISJSON = '{';
 #define JSON_PGA	JSON1 _PGA JSON2
 #endif
 
-#ifdef WANT_CPUMINE
-#define JSON_CPU	JSON1 _CPU JSON2
-#endif
-
 #define JSON_GPUS	JSON1 _GPUS JSON2
 #define JSON_PGAS	JSON1 _PGAS JSON2
 #define JSON_CPUS	JSON1 _CPUS JSON2
@@ -300,12 +273,6 @@ static const char *JSON_PARAMETER = "parameter";
 #define MSG_INVCMD 14
 #define MSG_MISID 15
 #define MSG_GPUDEV 17
-
-#ifdef WANT_CPUMINE
-#define MSG_CPUNON 16
-#define MSG_CPUDEV 18
-#define MSG_INVCPU 19
-#endif
 
 #define MSG_NUMGPU 20
 #define MSG_NUMCPU 21
@@ -469,11 +436,8 @@ struct CODES {
 #ifdef HAVE_AN_FPGA
 						"%d PGA(s)"
 #endif
-#if defined(WANT_CPUMINE) && (defined(HAVE_OPENCL) || defined(HAVE_AN_ASIC) || defined(HAVE_AN_FPGA))
+#if (defined(HAVE_OPENCL) || defined(HAVE_AN_ASIC) || defined(HAVE_AN_FPGA))
 						" - "
-#endif
-#ifdef WANT_CPUMINE
-						"%d CPU(s)"
 #endif
  },
 
@@ -483,9 +447,6 @@ struct CODES {
 #endif
 #ifdef HAVE_AN_FPGA
 						"/PGAs"
-#endif
-#ifdef WANT_CPUMINE
-						"/CPUs"
 #endif
  },
 
@@ -508,11 +469,6 @@ struct CODES {
  { SEVERITY_INFO,  MSG_PGAENA,	PARAM_PGA,	"PGA %d sent enable message" },
  { SEVERITY_INFO,  MSG_PGADIS,	PARAM_PGA,	"PGA %d set disable flag" },
  { SEVERITY_ERR,   MSG_PGAUNW,	PARAM_PGA,	"PGA %d is not flagged WELL, cannot enable" },
-#endif
-#ifdef WANT_CPUMINE
- { SEVERITY_ERR,   MSG_CPUNON,	PARAM_NONE,	"No CPUs" },
- { SEVERITY_SUCC,  MSG_CPUDEV,	PARAM_CPU,	"CPU%d" },
- { SEVERITY_ERR,   MSG_INVCPU,	PARAM_CPUMAX,	"Invalid CPU id %d - range is 0 - %d" },
 #endif
  { SEVERITY_SUCC,  MSG_NUMGPU,	PARAM_NONE,	"GPU count" },
  { SEVERITY_SUCC,  MSG_NUMPGA,	PARAM_NONE,	"PGA count" },
@@ -1291,9 +1247,6 @@ static void message(struct io_data *io_data, int messageid, int paramid, char *p
 #ifdef HAVE_AN_FPGA
 	int pga;
 #endif
-#ifdef WANT_CPUMINE
-	int cpu;
-#endif
 	int i;
 
 	io_reinit(io_data);
@@ -1342,15 +1295,6 @@ static void message(struct io_data *io_data, int messageid, int paramid, char *p
 					sprintf(buf, codes[i].description, paramid, pga - 1);
 					break;
 #endif
-#ifdef WANT_CPUMINE
-				case PARAM_CPUMAX:
-					if (opt_n_threads > 0)
-						cpu = num_processors;
-					else
-						cpu = 0;
-					sprintf(buf, codes[i].description, paramid, cpu - 1);
-					break;
-#endif
 				case PARAM_PMAX:
 					sprintf(buf, codes[i].description, total_pools);
 					break;
@@ -1364,13 +1308,6 @@ static void message(struct io_data *io_data, int messageid, int paramid, char *p
 #ifdef HAVE_AN_FPGA
 					pga = numpgas();
 #endif
-#ifdef WANT_CPUMINE
-					if (opt_n_threads > 0)
-						cpu = num_processors;
-					else
-						cpu = 0;
-#endif
-
 					sprintf(buf, codes[i].description
 #ifdef HAVE_OPENCL
 						, nDevs
@@ -1380,9 +1317,6 @@ static void message(struct io_data *io_data, int messageid, int paramid, char *p
 #endif
 #ifdef HAVE_AN_FPGA
 						, pga
-#endif
-#ifdef WANT_CPUMINE
-						, cpu
 #endif
 						);
 					break;
@@ -1486,10 +1420,6 @@ static void minerconfig(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __
 
 #ifdef HAVE_AN_FPGA
 	pgacount = numpgas();
-#endif
-
-#ifdef WANT_CPUMINE
-	cpucount = opt_n_threads > 0 ? num_processors : 0;
 #endif
 
 	message(io_data, MSG_MINECONFIG, 0, NULL, isjson);
@@ -1749,43 +1679,6 @@ static void pgastatus(struct io_data *io_data, int pga, bool isjson, bool precom
 }
 #endif
 
-#ifdef WANT_CPUMINE
-static void cpustatus(struct io_data *io_data, int cpu, bool isjson, bool precom)
-{
-	struct api_data *root = NULL;
-	char buf[TMPBUFSIZ];
-
-	if (opt_n_threads > 0 && cpu >= 0 && cpu < num_processors) {
-		struct cgpu_info *cgpu = &cpus[cpu];
-
-		cgpu->utility = cgpu->accepted / ( total_secs ? total_secs : 1 ) * 60;
-
-		root = api_add_int(root, "CPU", &cpu, false);
-		double mhs = cgpu->total_mhashes / total_secs;
-		root = api_add_mhs(root, "MHS av", &mhs, false);
-		char mhsname[27];
-		sprintf(mhsname, "MHS %ds", opt_log_interval);
-		root = api_add_mhs(root, mhsname, &(cgpu->rolling), false);
-		root = api_add_int(root, "Accepted", &(cgpu->accepted), false);
-		root = api_add_int(root, "Rejected", &(cgpu->rejected), false);
-		root = api_add_utility(root, "Utility", &(cgpu->utility), false);
-		int last_share_pool = cgpu->last_share_pool_time > 0 ?
-					cgpu->last_share_pool : -1;
-		root = api_add_int(root, "Last Share Pool", &last_share_pool, false);
-		root = api_add_time(root, "Last Share Time", &(cgpu->last_share_pool_time), false);
-		root = api_add_mhtotal(root, "Total MH", &(cgpu->total_mhashes), false);
-		root = api_add_int(root, "Diff1 Work", &(cgpu->diff1), false);
-		root = api_add_diff(root, "Difficulty Accepted", &(cgpu->diff_accepted), false);
-		root = api_add_diff(root, "Difficulty Rejected", &(cgpu->diff_rejected), false);
-		root = api_add_diff(root, "Last Share Difficulty", &(cgpu->last_share_diff), false);
-		root = api_add_time(root, "Last Valid Work", &(cgpu->last_device_valid_work), false);
-
-		root = print_data(root, buf, isjson, precom);
-		io_add(io_data, buf);
-	}
-}
-#endif
-
 static void devstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __maybe_unused char *param, bool isjson, __maybe_unused char group)
 {
 	bool io_open = false;
@@ -1838,16 +1731,6 @@ static void devstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __ma
 	if (numpga > 0) {
 		for (i = 0; i < numpga; i++) {
 			pgastatus(io_data, i, isjson, isjson && devcount > 0);
-
-			devcount++;
-		}
-	}
-#endif
-
-#ifdef WANT_CPUMINE
-	if (opt_n_threads > 0) {
-		for (i = 0; i < num_processors; i++) {
-			cpustatus(io_data, i, isjson, isjson && devcount > 0);
 
 			devcount++;
 		}
@@ -2078,40 +1961,6 @@ static void pgaidentify(struct io_data *io_data, __maybe_unused SOCKETTYPE c, ch
 }
 #endif
 
-#ifdef WANT_CPUMINE
-static void cpudev(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *param, bool isjson, __maybe_unused char group)
-{
-	bool io_open = false;
-	int id;
-
-	if (opt_n_threads == 0) {
-		message(io_data, MSG_CPUNON, 0, NULL, isjson);
-		return;
-	}
-
-	if (param == NULL || *param == '\0') {
-		message(io_data, MSG_MISID, 0, NULL, isjson);
-		return;
-	}
-
-	id = atoi(param);
-	if (id < 0 || id >= num_processors) {
-		message(io_data, MSG_INVCPU, id, NULL, isjson);
-		return;
-	}
-
-	message(io_data, MSG_CPUDEV, id, NULL, isjson);
-
-	if (isjson)
-		io_open = io_add(io_data, COMSTR JSON_CPU);
-
-	cpustatus(io_data, id, isjson, false);
-
-	if (isjson && io_open)
-		io_close(io_data);
-}
-#endif
-
 static void poolstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __maybe_unused char *param, bool isjson, __maybe_unused char group)
 {
 	struct api_data *root = NULL;
@@ -2208,12 +2057,6 @@ static void summary(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __mayb
 	bool io_open;
 	double utility, mhs, work_utility;
 
-#ifdef WANT_CPUMINE
-	char *algo = (char *)(algo_names[opt_algo]);
-	if (algo == NULL)
-		algo = (char *)NULLSTR;
-#endif
-
 	message(io_data, MSG_SUMM, 0, NULL, isjson);
 	io_open = io_add(io_data, isjson ? COMSTR JSON_SUMMARY : _SUMMARY COMSTR);
 
@@ -2225,9 +2068,6 @@ static void summary(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __mayb
 	work_utility = total_diff1 / ( total_secs ? total_secs : 1 ) * 60;
 
 	root = api_add_elapsed(root, "Elapsed", &(total_secs), true);
-#ifdef WANT_CPUMINE
-	root = api_add_string(root, "Algorithm", algo, false);
-#endif
 	root = api_add_mhs(root, "MHS av", &(mhs), false);
 	root = api_add_uint(root, "Found Blocks", &(found_blocks), true);
 	root = api_add_int(root, "Getworks", &(total_getworks), true);
@@ -2414,10 +2254,6 @@ static void cpucount(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __may
 	char buf[TMPBUFSIZ];
 	bool io_open;
 	int count = 0;
-
-#ifdef WANT_CPUMINE
-	count = opt_n_threads > 0 ? num_processors : 0;
-#endif
 
 	message(io_data, MSG_NUMCPU, 0, NULL, isjson);
 	io_open = io_add(io_data, isjson ? COMSTR JSON_CPUS : _CPUS COMSTR);
@@ -3526,9 +3362,6 @@ struct CMDS {
 	{ "pgaenable",		pgaenable,	true },
 	{ "pgadisable",		pgadisable,	true },
 	{ "pgaidentify",	pgaidentify,	true },
-#endif
-#ifdef WANT_CPUMINE
-	{ "cpu",		cpudev,		false },
 #endif
 	{ "gpucount",		gpucount,	false },
 	{ "pgacount",		pgacount,	false },

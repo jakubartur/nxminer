@@ -44,7 +44,6 @@
 #include "gpu/adl.h"
 #include "bench_block.h"
 #include "compat.h"
-#include "driver-cpu.h"
 #include "gpu/driver-opencl.h"
 #include "gpu/findnonce.h"
 #include "miner.h"
