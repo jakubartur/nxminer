@@ -1,5 +1,5 @@
-AC_PREREQ([2.60])
-AC_INIT([jansson], [2.5], [petri@digip.org])
+AC_PREREQ([2.69])
+AC_INIT([jansson],[2.5],[petri@digip.org])
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -10,7 +10,7 @@ AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_LIBTOOL
+LT_INIT
 AM_CONDITIONAL([GCC], [test x$GCC = xyes])
 
 # Checks for libraries.
