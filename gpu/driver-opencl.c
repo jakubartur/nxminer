@@ -128,8 +128,8 @@ char *set_worksize(char *arg)
 
 static enum cl_kernels select_kernel(char *arg)
 {
-	if (!strcmp(arg, "diablo"))
-		return KL_DIABLO;
+	if (!strcmp(arg, "thebigbanana"))
+		return KL_THEBIGBANANA;
 	return KL_NONE;
 }
 
@@ -765,9 +765,8 @@ void manage_gpu(void)
 #ifdef HAVE_OPENCL
 static _clState *clStates[MAX_GPUDEVICES];
 
-#define CL_SET_BLKARG(blkvar) status |= clSetKernelArg(*kernel, num++, sizeof(uint), (void *)&blk->blkvar)
-#define CL_SET_ARG(var) status |= clSetKernelArg(*kernel, num++, sizeof(var), (void *)&var)
-#define CL_SET_VARG(args, var) status |= clSetKernelArg(*kernel, num++, args * sizeof(uint), (void *)var)
+#define CL_SET_UINT_ARG(var) status |= clSetKernelArg(*kernel, num++, sizeof(uint), (void *)&var)
+#define CL_SET_CLMEM_ARG(var) status |= clSetKernelArg(*kernel, num++, sizeof(var), &var)
 
 static void incremement_nonce_kernel(cl_uchar* nonce)
 {
@@ -783,16 +782,15 @@ static void incremement_nonce_kernel(cl_uchar* nonce)
 // hashes = worksize * vectors
 
 // currently worksize is 256, vectors is 1
-static cl_int queue_banana_kernel(_clState *clState, struct work *blk, cl_uint threads)
+static cl_int queue_banana_kernel(_clState *clState, struct work *work, cl_uint threads)
 {
 	cl_kernel *kernel = &clState->kernel;
-	unsigned int num = 0;
+	cl_uint num = 0;
 	cl_int status = 0;
+    cl_int broken = 0;
 
-	if (!clState->goffset) {
-		cl_uint vwidth = clState->vwidth;
-		uint *nonces = alloca(sizeof(uint) * vwidth);
-		unsigned int i;
+    unsigned int i;
+    unsigned int k;
 
 	cl_uint vwidth = 1 ;//clState->vwidth;
 
@@ -817,8 +815,6 @@ static cl_int queue_banana_kernel(_clState *clState, struct work *blk, cl_uint t
     CL_SET_CLMEM_ARG(hash_input_mem);
 
     CL_SET_UINT_ARG(vwidth);
-
-    CL_SET_CLMEM_ARG(clState->ctx_buffer);
 
 	CL_SET_CLMEM_ARG(clState->outputBuffer);
 
@@ -1038,7 +1034,7 @@ struct opencl_thread_data {
 	uint8_t *res;
 };
 
-static uint32_t *blank_res;
+static uint8_t* blank_res;
 
 static bool opencl_thread_prepare(struct thr_info *thr)
 {
@@ -1051,12 +1047,14 @@ static bool opencl_thread_prepare(struct thr_info *thr)
 	static bool failmessage = false;
 
 	if (!blank_res)
+    {
 		blank_res = calloc(BUFFERSIZE, 1);
-	if (!blank_res) {
+    }
+	if (!blank_res)
+    {
 		applog(LOG_ERR, "Failed to calloc in opencl_thread_init");
 		return false;
 	}
-
 	strcpy(name, "");
 	applog(LOG_INFO, "Init GPU thread %i GPU %i virtual GPU %i", i, gpu, virtual_gpu);
 	clStates[i] = initCl(virtual_gpu, name, sizeof(name));
@@ -1091,8 +1089,8 @@ static bool opencl_thread_prepare(struct thr_info *thr)
 	if (!cgpu->kname)
 	{
 		switch (clStates[i]->chosen_kernel) {
-			case KL_DIABLO:
-				cgpu->kname = "diablo";
+			case KL_THEBIGBANANA:
+				cgpu->kname = "thebigbanana";
 				break;
 			default:
 				break;
@@ -1125,8 +1123,8 @@ static bool opencl_thread_init(struct thr_info *thr)
 	switch (clState->chosen_kernel)
     {
 		default:
-		case KL_DIABLO:
-			thrdata->queue_kernel_parameters = &queue_diablo_kernel;
+		case KL_THEBIGBANANA:
+			thrdata->queue_kernel_parameters = &queue_banana_kernel;
 			break;
 	}
 
@@ -1138,9 +1136,9 @@ static bool opencl_thread_init(struct thr_info *thr)
 		return false;
 	}
 
-	status |= clEnqueueWriteBuffer(clState->commandQueue, clState->outputBuffer, CL_TRUE, 0,
-			BUFFERSIZE, blank_res, 0, NULL, NULL);
-	if (unlikely(status != CL_SUCCESS)) {
+	status |= clEnqueueWriteBuffer(clState->commandQueue, clState->outputBuffer, CL_TRUE, 0, BUFFERSIZE, blank_res, 0, NULL, NULL);
+	if (unlikely(status != CL_SUCCESS))
+    {
 		applog(LOG_ERR, "Error: clEnqueueWriteBuffer failed.");
 		return false;
 	}
@@ -1172,26 +1170,34 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 	cl_int status;
 	size_t globalThreads[1];
 	size_t localThreads[1] = { clState->wsize };
-	int64_t hashes;
+	int64_t hashes = 0;
 
 	/* Windows' timer resolution is only 15ms so oversample 5x */
-	if (gpu->dynamic && (++gpu->intervals * dynamic_us) > 70000) {
+	if (gpu->dynamic && (++gpu->intervals * dynamic_us) > 70000)
+    {
 		struct timeval tv_gpuend;
 		double gpu_us;
 
 		gettimeofday(&tv_gpuend, NULL);
 		gpu_us = us_tdiff(&tv_gpuend, &gpu->tv_gpustart) / gpu->intervals;
-		if (gpu_us > dynamic_us) {
+		if (gpu_us > dynamic_us)
+        {
 			if (gpu->intensity > MIN_INTENSITY)
+            {
 				--gpu->intensity;
-		} else if (gpu_us < dynamic_us / 2) {
+            }
+		}
+        else if (gpu_us < dynamic_us / 2)
+        {
 			if (gpu->intensity < MAX_INTENSITY)
+            {
 				++gpu->intensity;
+            }
 		}
 		memcpy(&(gpu->tv_gpustart), &tv_gpuend, sizeof(struct timeval));
 		gpu->intervals = 0;
 	}
-
+    // hashes at once = vwidth * localthreads[0]
 	set_threads_hashes(clState->vwidth, &hashes, globalThreads, localThreads[0], &gpu->intensity);
 	if (hashes > gpu->max_hashes)
     {
@@ -1203,24 +1209,15 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 		applog(LOG_ERR, "Error: clSetKernelArg of all params failed.");
 		return -1;
 	}
-	if (clState->goffset)
-    {
-		size_t global_work_offset[1];
 
-		global_work_offset[0] = work->blk.nonce;
-		status = clEnqueueNDRangeKernel(clState->commandQueue, *kernel, 1, global_work_offset,
-						globalThreads, localThreads, 0,  NULL, NULL);
-	}
-    else
-    {
-		status = clEnqueueNDRangeKernel(clState->commandQueue, *kernel, 1, NULL,
-						globalThreads, localThreads, 0,  NULL, NULL);
-    }
+	status = clEnqueueNDRangeKernel(clState->commandQueue, *kernel, 1, NULL, globalThreads, localThreads, 0,  NULL, NULL);
+
 	if (unlikely(status != CL_SUCCESS))
     {
 		applog(LOG_ERR, "Error %d: Enqueueing kernel onto command queue. (clEnqueueNDRangeKernel)", status);
 		return -1;
 	}
+
 	status = clEnqueueReadBuffer(clState->commandQueue, clState->outputBuffer, CL_FALSE, 0, BUFFERSIZE, thrdata->res, 0, NULL, NULL);
 	if (unlikely(status != CL_SUCCESS))
     {
@@ -1240,6 +1237,7 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 	/* FOUND entry is used as a counter to say how many nonces exist */
 	if (thrdata->res[FOUND])
     {
+        applog(LOG_DEBUG, "thrdata->res[FOUND] = %u", thrdata->res[FOUND]);
 		/* Clear the buffer again */
 		status = clEnqueueWriteBuffer(clState->commandQueue, clState->outputBuffer, CL_FALSE, 0, BUFFERSIZE, blank_res, 0, NULL, NULL);
 		if (unlikely(status != CL_SUCCESS))
@@ -1251,7 +1249,7 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 		postcalc_hash_async(thr, work, thrdata->res);
 		memset(thrdata->res, 0, BUFFERSIZE);
 		/* This finish flushes the writebuffer set with CL_FALSE in clEnqueueWriteBuffer */
-		clFinish(clState->commandQueue);
+        clFinish(clState->commandQueue);
 	}
 	return hashes;
 }

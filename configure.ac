@@ -423,7 +423,7 @@ if test "x$prefix" = xNONE; then
 fi
 
 AC_DEFINE_UNQUOTED([NXMINER_PREFIX], ["$prefix/bin"], [Path to nxminer install])
-AC_DEFINE_UNQUOTED([DIABLO_KERNNAME], ["diablo130302"], [Filename for diablo kernel])
+AC_DEFINE_UNQUOTED([BIGBANANA_KERNNAME], ["thebigbanana20221125"], [Filename for the big banana kernel])
 
 AC_SUBST(OPENCL_LIBS)
 AC_SUBST(OPENCL_FLAGS)

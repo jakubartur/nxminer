@@ -3,12 +3,15 @@
 #include "config.h"
 #include "miner.h"
 
+#define MAX_WORK_SIZE 256
+
 #define MAXTHREADS (0xFFFFFFFEULL)
-#define MAXBUFFERS (0x10)
-#define BUFFERSIZE (sizeof(uint32_t) * MAXBUFFERS)
-#define FOUND      (0x0F)
+
+#define BUFFERSIZE (1 + (16 * MAX_WORK_SIZE))
+// found is index 0
+#define FOUND (0x00)
 
 #ifdef HAVE_OPENCL
-extern void postcalc_hash_async(struct thr_info* thr, struct work* work, uint32_t* res);
+extern void postcalc_hash_async(struct thr_info* thr, struct work* work, uint8_t* res);
 #endif /* HAVE_OPENCL */
 #endif /*__FINDNONCE_H__*/

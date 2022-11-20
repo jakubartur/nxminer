@@ -990,7 +990,7 @@ static struct opt_table opt_config_table[] = {
         set_kernel,
         NULL,
         NULL,
-        "Override sha256 kernel to use (diablo, poclbm, phatk or diakgcn) - one value or comma separated"),
+        "Override sha256 kernel to use a specific kernel - one value or comma separated"),
 #endif
     OPT_WITHOUT_ARG("--load-balance",
         set_loadbalance,
@@ -3263,8 +3263,8 @@ void write_config(FILE* fcfg)
             {
             case KL_NONE: // Shouldn't happen
                 break;
-            case KL_DIABLO:
-                fprintf(fcfg, "diablo");
+            case KL_THEBIGBANANA:
+                fprintf(fcfg, "thebigbanana");
                 break;
             }
         }
@@ -4585,7 +4585,7 @@ void submit_work_async(struct work* work_in, struct timeval* tv_work_found)
     }
 }
 
-void submit_nonce(struct thr_info* thr, struct work* work, uint32_t nonce)
+void submit_nonce(struct thr_info* thr, struct work* work, uint8_t nonce[16])
 {
     struct timeval tv_work_found;
     gettimeofday(&tv_work_found, NULL);
@@ -4594,8 +4594,10 @@ void submit_nonce(struct thr_info* thr, struct work* work, uint32_t nonce)
     thr->cgpu->diff1 += work->device_diff;
     work->pool->diff1 += work->device_diff;
     mutex_unlock(&stats_lock);
+    struct work* work_copy = copy_work(work);
+    memcpy(work_copy->nonce, nonce, 16);
 
-    submit_work_async(work, &tv_work_found);
+    submit_work_async(work_copy, &tv_work_found);
 }
 
 static inline bool abandon_work(struct work* work, struct timeval* wdiff, uint64_t hashes)
@@ -4637,8 +4639,6 @@ static void hash_sole_work(struct thr_info* mythr)
     const long cycle = opt_log_interval / 5 ?: 1;
     const bool primary = (!mythr->device_thread) || mythr->primary_thread;
     struct timeval diff, sdiff, wdiff = {0, 0};
-    uint8_t max_nonce[16];
-    drv->can_limit_work(mythr, max_nonce);
     int64_t hashes_done = 0;
 
     gettimeofday(&getwork_start, NULL);
@@ -4729,7 +4729,7 @@ static void hash_sole_work(struct thr_info* mythr)
             gettimeofday(&(work->tv_work_start), NULL);
 
             thread_reportin(mythr);
-            hashes = drv->scanhash(mythr, work, max_nonce);
+            hashes = drv->scanhash(mythr, work);
             thread_reportin(mythr);
 
             gettimeofday(&getwork_start, NULL);

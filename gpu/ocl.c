@@ -381,45 +381,43 @@ _clState *initCl(unsigned int gpu, char *name, size_t nameSize)
 
 	if (cgpu->kernel == KL_NONE)
     {
-		clState->chosen_kernel = KL_DIABLO;
+		clState->chosen_kernel = KL_THEBIGBANANA;
 		cgpu->kernel = clState->chosen_kernel;
 	}
 
 	/* For some reason 2 vectors is still better even if the card says
 	 * otherwise, and many cards lie about their max so use 256 as max
 	 * unless explicitly set on the command line. Tahiti prefers 1 */
-	if (strstr(name, "Tahiti"))
-		preferred_vwidth = 1;
-	else if (preferred_vwidth > 2)
+	if (preferred_vwidth > 2)
 		preferred_vwidth = 2;
 
 	switch (clState->chosen_kernel)
     {
 		case KL_NONE: /* Shouldn't happen */
-		case KL_DIABLO:
-			strcpy(filename, DIABLO_KERNNAME".cl");
-			strcpy(binaryfilename, DIABLO_KERNNAME);
+		case KL_THEBIGBANANA:
+			strcpy(filename, BIGBANANA_KERNNAME".cl");
+			strcpy(binaryfilename, BIGBANANA_KERNNAME);
 			break;
 	}
 
 	if (cgpu->vwidth)
+    {
 		clState->vwidth = cgpu->vwidth;
-	else {
+    }
+	else
+    {
 		clState->vwidth = preferred_vwidth;
 		cgpu->vwidth = preferred_vwidth;
 	}
 
-	if (clState->chosen_kernel == KL_DIABLO && clState->vwidth == 1 && clState->hasOpenCL11plus)
-    {
-			clState->goffset = true;
-        }
-
 	if (cgpu->work_size && cgpu->work_size <= clState->max_work_size)
+    {
 		clState->wsize = cgpu->work_size;
-	else if (strstr(name, "Tahiti"))
-		clState->wsize = 64;
-	else
-		clState->wsize = (clState->max_work_size <= 256 ? clState->max_work_size : 256) / clState->vwidth;
+    }
+    else
+    {
+        clState->wsize = (clState->max_work_size <= MAX_WORK_SIZE ? clState->max_work_size : MAX_WORK_SIZE) / clState->vwidth;
+    }
 	cgpu->work_size = clState->wsize;
 
 	FILE *binaryfile;
@@ -436,21 +434,19 @@ _clState *initCl(unsigned int gpu, char *name, size_t nameSize)
 		return NULL;
 
 	binary_sizes = calloc(sizeof(size_t) * MAX_GPUDEVICES * 4, 1);
-	if (unlikely(!binary_sizes)) {
+	if (unlikely(!binary_sizes))
+    {
 		applog(LOG_ERR, "Unable to calloc binary_sizes");
 		return NULL;
 	}
 	binaries = calloc(sizeof(char *) * MAX_GPUDEVICES * 4, 1);
-	if (unlikely(!binaries)) {
+	if (unlikely(!binaries))
+    {
 		applog(LOG_ERR, "Unable to calloc binaries");
 		return NULL;
 	}
 
 	strcat(binaryfilename, name);
-	if (clState->goffset)
-	{
-		strcat(binaryfilename, "g");
-	}
 	sprintf(numbuf, "v%d", clState->vwidth);
 	strcat(binaryfilename, numbuf);
 	sprintf(numbuf, "w%d", (int)clState->wsize);
@@ -516,7 +512,7 @@ build:
 	/* create a cl program executable for all the devices specified */
 	char *CompilerOptions = calloc(1, 256);
 
-	sprintf(CompilerOptions, "-D WORKSIZE=%d -D VECTORS%d -D WORKVEC=%d",
+	sprintf(CompilerOptions, "-cl-std=CL2.0 -D WORKSIZE=%d -D VECTORS%d -D WORKVEC=%d",
 		(int)clState->wsize, clState->vwidth, (int)clState->wsize * clState->vwidth);
 	applog(LOG_DEBUG, "Setting worksize to %lu", clState->wsize);
 	if (clState->vwidth > 1)
@@ -548,9 +544,6 @@ build:
 	} else
 		applog(LOG_DEBUG, "BFI_INT patch requiring device not found, will not BFI_INT patch");
 
-	if (clState->goffset)
-		strcat(CompilerOptions, " -D GOFFSET");
-
 	if (!clState->hasOpenCL11plus)
 		strcat(CompilerOptions, " -D OCL1");
 
@@ -568,6 +561,10 @@ build:
 		applog(LOG_ERR, "%s", log);
 		return NULL;
 	}
+    else
+    {
+        applog(LOG_DEBUG, "Finished Building Program (clBuildProgram)");
+    }
 
 	prog_built = true;
 
@@ -693,16 +690,25 @@ built:
 
 	/* get a kernel object handle for a kernel with the given name */
 	clState->kernel = clCreateKernel(clState->program, "search", &status);
-	if (status != CL_SUCCESS) {
+	if (status != CL_SUCCESS)
+    {
 		applog(LOG_ERR, "Error %d: Creating Kernel from program. (clCreateKernel)", status);
 		return NULL;
 	}
 
 	clState->outputBuffer = clCreateBuffer(clState->context, CL_MEM_WRITE_ONLY, BUFFERSIZE, NULL, &status);
-	if (status != CL_SUCCESS) {
+	if (status != CL_SUCCESS)
+    {
 		applog(LOG_ERR, "Error %d: clCreateBuffer (outputBuffer)", status);
 		return NULL;
 	}
+
+    uint8_t* arr_initial = malloc(124);
+    if (arr_initial == NULL)
+    {
+        applog(LOG_ERR, "Error: failed to malloc arr_initial");
+		return NULL;
+    }
 
 	return clState;
 }

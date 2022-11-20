@@ -22,7 +22,7 @@ struct pc_data
 {
     struct thr_info* thr;
     struct work* work;
-    uint32_t res[MAXBUFFERS];
+    uint8_t res[BUFFERSIZE];
     pthread_t pth;
     int found;
 };
@@ -37,6 +37,7 @@ static void* postcalc_hash(void* userdata)
 
     /* To prevent corrupt values in FOUND from trying to read beyond the
      * end of the res[] array */
+    /*
     if (unlikely(pcd->res[FOUND] & ~FOUND))
     {
         applog(LOG_WARNING, "%s%d: invalid nonce count - HW error", thr->cgpu->drv->name, thr->cgpu->device_id);
@@ -44,6 +45,7 @@ static void* postcalc_hash(void* userdata)
         thr->cgpu->hw_errors++;
         pcd->res[FOUND] &= FOUND;
     }
+    */
 
     for (entry = 0; entry < pcd->res[FOUND]; entry++)
     {
@@ -53,14 +55,13 @@ static void* postcalc_hash(void* userdata)
         //applog(LOG_DEBUG, "OCL NONCE %u found in slot %d", nonce, entry);
         submit_nonce(thr, pcd->work, nonce);
     }
-
     discard_work(pcd->work);
     free(pcd);
 
     return NULL;
 }
 
-void postcalc_hash_async(struct thr_info* thr, struct work* work, uint32_t* res)
+void postcalc_hash_async(struct thr_info* thr, struct work* work, uint8_t* res)
 {
     struct pc_data* pcd = malloc(sizeof(struct pc_data));
     if (unlikely(!pcd))

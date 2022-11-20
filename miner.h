@@ -296,7 +296,7 @@ struct device_drv
     /* Two variants depending on whether the device divides work up into
      * small pieces or works with whole work items and may or may not have
      * a queue of its own. */
-    uint64_t (*scanhash)(struct thr_info*, struct work*, uint8_t max_nonce[16]);
+    uint64_t (*scanhash)(struct thr_info*, struct work*);
     uint64_t (*scanwork)(struct thr_info*);
 
     /* Used to extract work from the hash table of queued work and tell
@@ -328,7 +328,7 @@ enum dev_enable
 enum cl_kernels
 {
     KL_NONE,
-    KL_DIABLO,
+    KL_THEBIGBANANA,
 };
 
 enum dev_reason
@@ -418,7 +418,7 @@ struct cgpu_info
     int threads;
     struct thr_info** thr;
 
-    int64_t max_hashes;
+    uint64_t max_hashes;
 
     const char* kname;
 #ifdef HAVE_OPENCL
@@ -770,8 +770,6 @@ typedef bool (*sha256_func)(struct thr_info*,
     uint8_t* mining_nonce, // len 16
     uint64_t* hashes_done);
 
-extern bool fulltest(const unsigned char* hash, const unsigned char* target);
-
 extern int opt_queue;
 extern int opt_scantime;
 extern int opt_expiry;
@@ -1044,7 +1042,7 @@ struct work
 };
 
 extern void get_datestamp(char*, struct timeval*);
-extern void submit_nonce(struct thr_info* thr, struct work* work, uint32_t nonce);
+extern void submit_nonce(struct thr_info* thr, struct work* work, uint8_t nonce[16]);
 extern void tailsprintf(char* f, const char* fmt, ...);
 extern void _wlog(const char *str);
 extern void _wlogprint(const char *str);
