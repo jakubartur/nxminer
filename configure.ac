@@ -481,7 +481,7 @@ AC_CONFIG_FILES([
 	])
 AC_OUTPUT
 
-ac_configure_args="${ac_configure_args} --disable-shared --with-pic --with-bignum=no --enable-module-recovery --disable-jni"
+ac_configure_args="${ac_configure_args} --disable-shared --with-pic --with-bignum=no --enable-module-recovery --disable-jni --with-ecmult-gen-precision=8 --with-field=32bit --with-scalar=32bit"
 AC_CONFIG_SUBDIRS([secp256k1])
 AC_OUTPUT
 

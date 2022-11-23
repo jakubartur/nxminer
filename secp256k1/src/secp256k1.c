@@ -61,13 +61,6 @@ static const secp256k1_callback default_error_callback = {
     NULL
 };
 
-struct secp256k1_context_struct {
-    secp256k1_ecmult_context ecmult_ctx;
-    secp256k1_ecmult_gen_context ecmult_gen_ctx;
-    secp256k1_callback illegal_callback;
-    secp256k1_callback error_callback;
-};
-
 static const secp256k1_context secp256k1_context_no_precomp_ = {
     { 0 },
     { 0 },

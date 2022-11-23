@@ -6,6 +6,104 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
+
+/* TODO FIX THIS PATH */
+#include "../src/libsecp256k1-config.h"
+
+#define ECMULT_GEN_PREC_B 8
+#define ECMULT_GEN_PREC_G (1 << ECMULT_GEN_PREC_B)
+#define ECMULT_GEN_PREC_N (256 / ECMULT_GEN_PREC_B)
+
+#if defined(USE_FIELD_10X26)
+typedef struct {
+    /* X = sum(i=0..9, n[i]*2^(i*26)) mod p
+     * where p = 2^256 - 0x1000003D1
+     */
+    uint32_t n[10];
+#ifdef VERIFY
+    int magnitude;
+    int normalized;
+#endif
+} secp256k1_fe;
+typedef struct {
+    uint32_t n[8];
+} secp256k1_fe_storage;
+#elif defined(USE_FIELD_5X52)
+typedef struct {
+    /* X = sum(i=0..4, n[i]*2^(i*52)) mod p
+     * where p = 2^256 - 0x1000003D1
+     */
+    uint64_t n[5];
+#ifdef VERIFY
+    int magnitude;
+    int normalized;
+#endif
+} secp256k1_fe;
+typedef struct {
+    uint64_t n[4];
+} secp256k1_fe_storage;
+#else
+#error "Please select field implementation"
+#endif
+
+#if defined(EXHAUSTIVE_TEST_ORDER)
+typedef uint32_t secp256k1_scalar;
+#elif defined(USE_SCALAR_4X64)
+typedef struct {
+    uint64_t d[4];
+} secp256k1_scalar;
+#elif defined(USE_SCALAR_8X32)
+typedef struct {
+    uint32_t d[8];
+} secp256k1_scalar;
+#else
+#error "Please select scalar implementation"
+#endif
+
+typedef struct {
+    secp256k1_fe_storage x;
+    secp256k1_fe_storage y;
+} secp256k1_ge_storage;
+
+/** A group element of the secp256k1 curve, in jacobian coordinates. */
+typedef struct {
+    secp256k1_fe x; /* actual X: x/z^2 */
+    secp256k1_fe y; /* actual Y: y/z^3 */
+    secp256k1_fe z;
+    int infinity; /* whether this represents the point at infinity */
+} secp256k1_gej;
+
+typedef struct {
+    /* For accelerating the computation of a*G:
+     * To harden against timing attacks, use the following mechanism:
+     * * Break up the multiplicand into groups of PREC_B bits, called n_0, n_1, n_2, ..., n_(PREC_N-1).
+     * * Compute sum(n_i * (PREC_G)^i * G + U_i, i=0 ... PREC_N-1), where:
+     *   * U_i = U * 2^i, for i=0 ... PREC_N-2
+     *   * U_i = U * (1-2^(PREC_N-1)), for i=PREC_N-1
+     *   where U is a point with no known corresponding scalar. Note that sum(U_i, i=0 ... PREC_N-1) = 0.
+     * For each i, and each of the PREC_G possible values of n_i, (n_i * (PREC_G)^i * G + U_i) is
+     * precomputed (call it prec(i, n_i)). The formula now becomes sum(prec(i, n_i), i=0 ... PREC_N-1).
+     * None of the resulting prec group elements have a known scalar, and neither do any of
+     * the intermediate sums while computing a*G.
+     */
+    secp256k1_ge_storage (*prec)[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G]; /* prec[j][i] = (PREC_G)^j * i * G + U_i */
+    secp256k1_scalar blind;
+    secp256k1_gej initial;
+} secp256k1_ecmult_gen_context;
+
+typedef struct {
+    /* For accelerating the computation of a*P + b*G: */
+    secp256k1_ge_storage (*pre_g)[];    /* odd multiples of the generator */
+#ifdef USE_ENDOMORPHISM
+    secp256k1_ge_storage (*pre_g_128)[]; /* odd multiples of 2^128*generator */
+#endif
+} secp256k1_ecmult_context;
+
+typedef struct {
+    void (*fn)(const char *text, void* data);
+    const void* data;
+} secp256k1_callback;
 
 /* These rules specify the order of arguments in API calls:
  *
@@ -41,6 +139,12 @@ extern "C" {
  *  Regarding randomization, either do it once at creation time (in which case
  *  you do not need any locking for the other calls), or use a read-write lock.
  */
+struct secp256k1_context_struct {
+    secp256k1_ecmult_context ecmult_ctx;
+    secp256k1_ecmult_gen_context ecmult_gen_ctx;
+    secp256k1_callback illegal_callback;
+    secp256k1_callback error_callback;
+};
 typedef struct secp256k1_context_struct secp256k1_context;
 
 /** Opaque data structure that holds rewriteable "scratch space"
