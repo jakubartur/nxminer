@@ -2440,6 +2440,10 @@ void __copy_work(struct work* work, struct work* base_work)
     {
 		work->ntime = strdup(base_work->ntime);
     }
+    if (base_work->headerCommitment)
+    {
+        memcpy(work->headerCommitment, base_work->headerCommitment, 32);
+    }
 }
 
 /* Generates a copy of an existing work struct, creating fresh heap allocations
