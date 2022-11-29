@@ -894,67 +894,6 @@ extern double current_block_diff;
 extern double best_diff;
 extern struct timeval block_timeval;
 
-#ifdef HAVE_OPENCL
-typedef struct
-{
-    cl_uint ctx_a;
-    cl_uint ctx_b;
-    cl_uint ctx_c;
-    cl_uint ctx_d;
-    cl_uint ctx_e;
-    cl_uint ctx_f;
-    cl_uint ctx_g;
-    cl_uint ctx_h;
-    cl_uint cty_a;
-    cl_uint cty_b;
-    cl_uint cty_c;
-    cl_uint cty_d;
-    cl_uint cty_e;
-    cl_uint cty_f;
-    cl_uint cty_g;
-    cl_uint cty_h;
-    cl_uint merkle;
-    cl_uint ntime;
-    cl_uint nbits;
-    cl_uint* nonce;
-    cl_uint fW0;
-    cl_uint fW1;
-    cl_uint fW2;
-    cl_uint fW3;
-    cl_uint fW15;
-    cl_uint fW01r;
-    cl_uint fcty_e;
-    cl_uint fcty_e2;
-    cl_uint W16;
-    cl_uint W17;
-    cl_uint W2;
-    cl_uint PreVal4;
-    cl_uint T1;
-    cl_uint C1addK5;
-    cl_uint D1A;
-    cl_uint W2A;
-    cl_uint W17_2;
-    cl_uint PreVal4addT1;
-    cl_uint T1substate0;
-    cl_uint PreVal4_2;
-    cl_uint PreVal0;
-    cl_uint PreW18;
-    cl_uint PreW19;
-    cl_uint PreW31;
-    cl_uint PreW32;
-
-    /* For diakgcn */
-    cl_uint B1addK6, PreVal0addK7, W16addK16, W17addK17;
-    cl_uint zeroA, zeroB;
-    cl_uint oneA, twoA, threeA, fourA, fiveA, sixA, sevenA;
-} dev_blk_ctx;
-#else
-typedef struct
-{
-    uint8_t nonce[16];
-} dev_blk_ctx;
-#endif
-
 struct curl_ent
 {
     CURL* curl;
@@ -1090,8 +1029,6 @@ struct work
     double device_diff;
 
     int rolls;
-
-    dev_blk_ctx blk;
 
     struct thr_info* thr;
     int thr_id;

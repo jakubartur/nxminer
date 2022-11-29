@@ -769,7 +769,21 @@ static _clState *clStates[MAX_GPUDEVICES];
 #define CL_SET_ARG(var) status |= clSetKernelArg(*kernel, num++, sizeof(var), (void *)&var)
 #define CL_SET_VARG(args, var) status |= clSetKernelArg(*kernel, num++, args * sizeof(uint), (void *)var)
 
-static cl_int queue_diablo_kernel(_clState *clState, dev_blk_ctx *blk, cl_uint threads)
+static void incremement_nonce_kernel(cl_uchar* nonce)
+{
+    cl_uint i = 0;
+    cl_uint* pn = (cl_uint*)nonce;
+    while (++pn[i] == 0 && i < 3)
+    {
+        i++;
+    }
+}
+
+// threads is the worksize, clState->vwidth is the number of vectors
+// hashes = worksize * vectors
+
+// currently worksize is 256, vectors is 1
+static cl_int queue_banana_kernel(_clState *clState, struct work *blk, cl_uint threads)
 {
 	cl_kernel *kernel = &clState->kernel;
 	unsigned int num = 0;
@@ -1031,8 +1045,8 @@ static void get_opencl_statline(char *buf, struct cgpu_info *gpu)
 }
 
 struct opencl_thread_data {
-	cl_int (*queue_kernel_parameters)(_clState *, dev_blk_ctx *, cl_uint);
-	uint32_t *res;
+	cl_int (*queue_kernel_parameters)(_clState *, struct work *, cl_uint);
+	uint8_t *res;
 };
 
 static uint32_t *blank_res;
@@ -1194,7 +1208,7 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work, uint8_t
     {
 		gpu->max_hashes = hashes;
     }
-	status = thrdata->queue_kernel_parameters(clState, &work->blk, globalThreads[0]);
+	status = thrdata->queue_kernel_parameters(clState, work, globalThreads[0]);
 	if (unlikely(status != CL_SUCCESS))
     {
 		applog(LOG_ERR, "Error: clSetKernelArg of all params failed.");

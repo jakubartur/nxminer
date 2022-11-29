@@ -4661,7 +4661,6 @@ static void hash_sole_work(struct thr_info* mythr)
         cgpu->new_work = true;
 
         gettimeofday(&tv_workstart, NULL);
-        memset(work->blk.nonce, 0, 16);
         if (memcmp(mythr->lastCommitment, work->headerCommitment, 32) != 0 || memcmp(mythr->lastCommitment, UINT256_ZERO, 32) == 0)
         {
             // we have not started mining on the device nonce range, pull nonce from work start nonce
