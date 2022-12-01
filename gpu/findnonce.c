@@ -47,9 +47,10 @@ static void* postcalc_hash(void* userdata)
 
     for (entry = 0; entry < pcd->res[FOUND]; entry++)
     {
-        uint32_t nonce = pcd->res[entry];
-
-        applog(LOG_DEBUG, "OCL NONCE %u found in slot %d", nonce, entry);
+        uint8_t nonce[16];
+        memcpy(nonce, &pcd->res[1 + (entry*16)], 16);
+        //char* strnonce = NULL;
+        //applog(LOG_DEBUG, "OCL NONCE %u found in slot %d", nonce, entry);
         submit_nonce(thr, pcd->work, nonce);
     }
 
