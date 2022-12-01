@@ -794,44 +794,33 @@ static cl_int queue_banana_kernel(_clState *clState, struct work *blk, cl_uint t
 		uint *nonces = alloca(sizeof(uint) * vwidth);
 		unsigned int i;
 
-		for (i = 0; i < vwidth; i++)
-			nonces[i] = blk->nonce + (i * threads);
-		CL_SET_VARG(vwidth, nonces);
-	}
+	cl_uint vwidth = 1 ;//clState->vwidth;
 
+    cl_mem nonces_mem = clCreateBuffer(clState->context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, 16, work->nonce, &status);
+    // nonces
+	CL_SET_CLMEM_ARG(nonces_mem);
 
-	CL_SET_BLKARG(PreVal0);
-	CL_SET_BLKARG(PreVal0addK7);
-	CL_SET_BLKARG(PreVal4addT1);
-	CL_SET_BLKARG(PreW18);
-	CL_SET_BLKARG(PreW19);
-	CL_SET_BLKARG(W16);
-	CL_SET_BLKARG(W17);
-	CL_SET_BLKARG(W16addK16);
-	CL_SET_BLKARG(W17addK17);
-	CL_SET_BLKARG(PreW31);
-	CL_SET_BLKARG(PreW32);
+    cl_mem target_mem = clCreateBuffer(clState->context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, 32, work->target, &status);
+    // target
+	CL_SET_CLMEM_ARG(target_mem);
 
-	CL_SET_BLKARG(D1A);
-	CL_SET_BLKARG(cty_b);
-	CL_SET_BLKARG(cty_c);
-	CL_SET_BLKARG(cty_h);
-	CL_SET_BLKARG(cty_f);
-	CL_SET_BLKARG(cty_g);
+    cl_uchar hash_input[49];
+    for (unsigned int i = 0; i < 32; ++i)
+    {
+        hash_input[i] = work->headerCommitment[31 - i];
+    }
+    hash_input[32] = 16;
+    memcpy(&hash_input[33], work->nonce, 16);
 
-	CL_SET_BLKARG(C1addK5);
-	CL_SET_BLKARG(B1addK6);
+    cl_mem hash_input_mem = clCreateBuffer(clState->context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, 49, hash_input, &status);
+    // commitment
+    CL_SET_CLMEM_ARG(hash_input_mem);
 
-	CL_SET_BLKARG(ctx_a);
-	CL_SET_BLKARG(ctx_b);
-	CL_SET_BLKARG(ctx_c);
-	CL_SET_BLKARG(ctx_d);
-	CL_SET_BLKARG(ctx_e);
-	CL_SET_BLKARG(ctx_f);
-	CL_SET_BLKARG(ctx_g);
-	CL_SET_BLKARG(ctx_h);
+    CL_SET_UINT_ARG(vwidth);
 
-	CL_SET_ARG(clState->outputBuffer);
+    CL_SET_CLMEM_ARG(clState->ctx_buffer);
+
+	CL_SET_CLMEM_ARG(clState->outputBuffer);
 
 	return status;
 }
@@ -1171,7 +1160,7 @@ static bool opencl_prepare_work(struct thr_info __maybe_unused *thr, struct work
 
 extern int opt_dynamic_interval;
 
-static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work, uint8_t max_nonce[16])
+static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 {
 	const int thr_id = thr->id;
 	struct opencl_thread_data *thrdata = thr->cgpu_data;
@@ -1241,7 +1230,11 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work, uint8_t
 	/* The amount of work scanned can fluctuate when intensity changes
 	 * and since we do this one cycle behind, we increment the work more
 	 * than enough to prevent repeating work */
-	work->blk.nonce += gpu->max_hashes;
+
+	// work->blk.nonce += gpu->max_hashes;
+    //printf("gpu max hashes = %lu\n", gpu->max_hashes);
+    uint256_assign_add(work->nonce, gpu->max_hashes);
+    memcpy(thr->thread_nonce, work->nonce, 16);
 	/* This finish flushes the readbuffer set with CL_FALSE in clEnqueueReadBuffer */
 	clFinish(clState->commandQueue);
 	/* FOUND entry is used as a counter to say how many nonces exist */

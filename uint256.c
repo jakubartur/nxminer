@@ -159,6 +159,19 @@ void uint256_assign_subtract(uint8_t* a, const uint8_t* b)
     }
 }
 
+void uint256_assign_add(uint8_t* a, const uint64_t b)
+{
+    uint32_t b256[8] = {(uint32_t)b, (uint32_t)(b>>32), 0, 0, 0, 0, 0, 0};
+    uint32_t* pn = (uint32_t*)a;
+    uint64_t carry = 0;
+    for (uint i = 0; i < 8; i++)
+    {
+        uint64_t n = carry + pn[i] + b256[i];
+        pn[i] = n & 0xffffffff;
+        carry = n >> 32;
+    }
+}
+
 static int32_t uint256_compare_to(const uint8_t* a, const uint8_t* b)
 {
     uint32_t* a32 = (uint32_t*)a;
