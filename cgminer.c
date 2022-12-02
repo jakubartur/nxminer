@@ -4670,7 +4670,7 @@ static void hash_sole_work(struct thr_info* mythr)
             const uint64_t THREAD_NONCE_RANGE_SIZE = POOL137_NONCE_RANGE / total_devices;
             uint64_t nonce_start_offset = cgpu->device_id * THREAD_NONCE_RANGE_SIZE;
             // add the start offset for this thread to the work nonce
-            nonce_assign_addition(work->nonce, nonce_start_offset);
+            uint128_assign_add(work->nonce, nonce_start_offset);
             /*
             printf("start nonce for thread post assign addition: ");
             uint128_print_string(work->nonce);

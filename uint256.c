@@ -159,12 +159,25 @@ void uint256_assign_subtract(uint8_t* a, const uint8_t* b)
     }
 }
 
+void uint128_assign_add(uint8_t* a, const uint64_t b)
+{
+    uint32_t b32[4] = {(uint32_t)b, (uint32_t)(b >> 32), 0, 0};
+    uint32_t* pn = (uint32_t*)a;
+    uint64_t carry = 0;
+    for (int32_t i = 0; i < 4; i++)
+    {
+        uint64_t n = carry + pn[i] + b32[i];
+        pn[i] = n & 0xffffffff;
+        carry = n >> 32;
+    }
+}
+
 void uint256_assign_add(uint8_t* a, const uint64_t b)
 {
     uint32_t b256[8] = {(uint32_t)b, (uint32_t)(b>>32), 0, 0, 0, 0, 0, 0};
     uint32_t* pn = (uint32_t*)a;
     uint64_t carry = 0;
-    for (uint i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++)
     {
         uint64_t n = carry + pn[i] + b256[i];
         pn[i] = n & 0xffffffff;

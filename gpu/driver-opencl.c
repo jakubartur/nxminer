@@ -1233,7 +1233,7 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 
 	// work->blk.nonce += gpu->max_hashes;
     //printf("gpu max hashes = %lu\n", gpu->max_hashes);
-    uint256_assign_add(work->nonce, gpu->max_hashes);
+    uint128_assign_add(work->nonce, gpu->max_hashes);
     memcpy(thr->thread_nonce, work->nonce, 16);
 	/* This finish flushes the readbuffer set with CL_FALSE in clEnqueueReadBuffer */
 	clFinish(clState->commandQueue);

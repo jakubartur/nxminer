@@ -43,7 +43,6 @@ enum dev_reason;
 struct cgpu_info;
 
 void difficulty_to_target(double difficulty, uint8_t* res);
-void nonce_assign_addition(uint8_t* a, const uint64_t b);
 double nbits_to_difficulty(const uint32_t* nBits);
 bool stratum_send(struct pool* pool, char* s, ssize_t len);
 bool sock_full(struct pool* pool);

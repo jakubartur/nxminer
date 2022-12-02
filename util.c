@@ -291,23 +291,6 @@ void difficulty_to_target(double difficulty, uint8_t* res)
     uint256_multiply(difficulty_uint256, UINT256_100000000, res);
 }
 
-void nonce_assign_addition(uint8_t* a, const uint64_t b)
-{
-    uint32_t b32[4];
-    b32[0] = (uint32_t)b;
-    b32[1] = (uint32_t)(b >> 32);
-    b32[2] = 0;
-    b32[3] = 0;
-    uint32_t* a32 = (uint32_t*)a;
-    uint64_t carry = 0;
-    for (int32_t i = 0; i < 4; i++)
-    {
-        uint64_t n = carry + a32[i] + b32[i];
-        a32[i] = n & 0x00000000ffffffff;
-        carry = n >> 32;
-    }
-}
-
 double nbits_to_difficulty(const uint32_t* nBits)
 {
     int32_t nShift = (*nBits >> 24) & 0xff;
