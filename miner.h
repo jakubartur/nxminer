@@ -15,10 +15,6 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-#include <secp256k1.h>
-#include <secp256k1_recovery.h>
-#include <secp256k1_schnorr.h>
-
 #ifdef HAVE_OPENCL
 #include "gpu/opencl/opencl.h"
 #endif /* HAVE_OPENCL */
@@ -1135,7 +1131,5 @@ extern struct api_data* api_add_freq(struct api_data* root, char* name, double* 
 extern struct api_data* api_add_volts(struct api_data* root, char* name, float* data, bool copy_data);
 extern struct api_data* api_add_hs(struct api_data* root, char* name, double* data, bool copy_data);
 extern struct api_data* api_add_diff(struct api_data* root, char* name, double* data, bool copy_data);
-
-extern secp256k1_context* secp256k1_context_sign;
 
 #endif /* __MINER_H__ */

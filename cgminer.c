@@ -276,8 +276,6 @@ struct schedtime schedstart;
 struct schedtime schedstop;
 bool sched_paused;
 
-secp256k1_context* secp256k1_context_sign = NULL;
-
 static bool time_before(struct tm* tm1, struct tm* tm2)
 {
     if (tm1->tm_hour < tm2->tm_hour)
@@ -5240,17 +5238,6 @@ void print_summary(void)
         applog(LOG_WARNING, "WARNING - Mined only %d shares of %d requested.", total_accepted, opt_shares);
 }
 
-static void ECC_Stop()
-{
-    secp256k1_context* ctx = secp256k1_context_sign;
-    secp256k1_context_sign = NULL;
-
-    if (ctx)
-    {
-        secp256k1_context_destroy(ctx);
-    }
-}
-
 static void clean_up(void)
 {
 #ifdef HAVE_OPENCL
@@ -5268,7 +5255,6 @@ static void clean_up(void)
         free(cpus);
 
     curl_global_cleanup();
-    ECC_Stop();
 }
 
 void nxquit(int status, const char* format, ...)
@@ -5713,28 +5699,8 @@ static void GetRandBytes(unsigned char* buf, int num)
     }
 }
 
-static void ECC_Start()
-{
-    assert(secp256k1_context_sign == NULL);
-
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
-    assert(ctx != NULL);
-
-    {
-        // Pass in a random blinding seed to the secp256k1 context.
-        unsigned char seed[32];
-        GetRandBytes(seed, 32);
-        bool ret = secp256k1_context_randomize(ctx, seed);
-        assert(ret);
-    }
-
-    secp256k1_context_sign = ctx;
-}
-
 int main(int argc, char* argv[])
 {
-    ECC_Start();
-
     struct sigaction handler;
     struct thr_info* thr;
     struct block* block;
