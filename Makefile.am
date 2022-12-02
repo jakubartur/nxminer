@@ -25,13 +25,14 @@ bin_SCRIPTS	= *.cl
 
 nxminer_LDFLAGS	= $(PTHREAD_FLAGS)
 nxminer_LDADD	= $(DLOPEN_FLAGS) @LIBCURL_LIBS@ @JANSSON_LIBS@ @PTHREAD_LIBS@ \
-		  @OPENCL_LIBS@ @NCURSES_LIBS@ @WS2_LIBS@ \
-		  @MATH_LIBS@ @SSL_LIBS@ @CRYPTO_LIBS@ lib/libgnu.a ccan/libccan.a \
-		  $(LIBSECP256K1)
+		  @OPENCL_LIBS@ @NCURSES_LIBS@ @WS2_LIBS@ @MATH_LIBS@ @SSL_LIBS@ \
+		  @CRYPTO_LIBS@ lib/libgnu.a ccan/libccan.a $(LIBSECP256K1)
 
 
 nxminer_CPPFLAGS = -I$(top_builddir)/lib -I$(top_srcdir)/lib -I$(top_builddir)/secp256k1/include \
- 					@OPENCL_FLAGS@ $(CRYPTO_CFLAGS) $(SSL_CFLAGS) $(nxminer_INCLUDES) @LIBCURL_CFLAGS@
+ 					@OPENCL_FLAGS@ $(CRYPTO_CFLAGS) $(SSL_CFLAGS) $(nxminer_INCLUDES) @LIBCURL_CFLAGS@ \
+					-lncurses
+
 
 # common sources
 nxminer_SOURCES := cgminer.c uint256.c util.c sha2.c sha2.h api.c logging.c
