@@ -361,14 +361,14 @@ _clState *initCl(unsigned int gpu, char *name, size_t nameSize)
 		applog(LOG_ERR, "Error %d: Failed to clGetDeviceInfo when trying to get CL_DEVICE_MAX_WORK_GROUP_SIZE", status);
 		return NULL;
 	}
-	applog(LOG_DEBUG, "Max work group size reported %d", clState->max_work_size);
+	applog(LOG_DEBUG, "Max work group size reported %lu", clState->max_work_size);
 
 	status = clGetDeviceInfo(devices[gpu], CL_DEVICE_MAX_MEM_ALLOC_SIZE , sizeof(cl_ulong), (void *)&cgpu->max_alloc, NULL);
 	if (status != CL_SUCCESS) {
 		applog(LOG_ERR, "Error %d: Failed to clGetDeviceInfo when trying to get CL_DEVICE_MAX_MEM_ALLOC_SIZE", status);
 		return NULL;
 	}
-	applog(LOG_DEBUG, "Max mem alloc size is %u", cgpu->max_alloc);
+	applog(LOG_DEBUG, "Max mem alloc size is %lu", cgpu->max_alloc);
 
 	/* Create binary filename based on parameters passed to opencl
 	 * compiler to ensure we only load a binary that matches what would
@@ -518,7 +518,7 @@ build:
 
 	sprintf(CompilerOptions, "-D WORKSIZE=%d -D VECTORS%d -D WORKVEC=%d",
 		(int)clState->wsize, clState->vwidth, (int)clState->wsize * clState->vwidth);
-	applog(LOG_DEBUG, "Setting worksize to %d", clState->wsize);
+	applog(LOG_DEBUG, "Setting worksize to %lu", clState->wsize);
 	if (clState->vwidth > 1)
 		applog(LOG_DEBUG, "Patched source to suit %d vectors", clState->vwidth);
 
@@ -591,7 +591,7 @@ build:
 			break;
 
 	/* copy over all of the generated binaries. */
-	applog(LOG_DEBUG, "Binary size for gpu %d found in binary slot %d: %d", gpu, slot, binary_sizes[slot]);
+	applog(LOG_DEBUG, "Binary size for gpu %u found in binary slot %u: %lu", gpu, slot, binary_sizes[slot]);
 	if (!binary_sizes[slot]) {
 		applog(LOG_ERR, "OpenCL compiler generated a zero sized binary, FAIL!");
 		return NULL;
@@ -673,7 +673,7 @@ built:
 	free(binaries);
 	free(binary_sizes);
 
-	applog(LOG_INFO, "Initialising kernel %s with%s bitalign, %d vectors and worksize %d",
+	applog(LOG_INFO, "Initialising kernel %s with%s bitalign, %d vectors and worksize %lu",
 	       filename, clState->hasBitAlign ? "" : "out", clState->vwidth, clState->wsize);
 
 	if (!prog_built) {
