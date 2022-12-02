@@ -190,25 +190,6 @@ static inline int fsync(int fd)
 #define MIN(x, y) ((x) > (y) ? (y) : (x))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
-static const uint8_t MAX_POSSIBLE_NONCE[16] = {
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-    0xff,
-};
-
 enum drv_driver
 {
     DRIVER_OPENCL = 0,
@@ -310,7 +291,7 @@ struct device_drv
 
     // Thread-specific functions
     bool (*thread_prepare)(struct thr_info*);
-    void (*can_limit_work)(struct thr_info*, uint8_t max_nonce[16]);
+    void (*can_limit_work)(struct thr_info*);
     bool (*thread_init)(struct thr_info*);
     bool (*prepare_work)(struct thr_info*, struct work*);
 
@@ -792,7 +773,6 @@ extern bool hex2bin(unsigned char* p, const char* hexstr, size_t len);
 
 typedef bool (*sha256_func)(struct thr_info*,
     struct work* work,
-    uint8_t* max_nonce, // len 16
     uint8_t* mining_nonce, // len 16
     uint64_t* hashes_done);
 

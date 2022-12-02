@@ -5566,9 +5566,9 @@ static bool noop_thread_prepare(struct thr_info __maybe_unused* thr)
     return true;
 }
 
-static void noop_can_limit_work(struct thr_info __maybe_unused* thr, uint8_t* max_nonce)
+static void noop_can_limit_work(struct thr_info __maybe_unused* thr)
 {
-    memcpy(max_nonce, MAX_POSSIBLE_NONCE, 16);
+    // intentionally do nothing
 }
 
 static bool noop_thread_init(struct thr_info __maybe_unused* thr)
