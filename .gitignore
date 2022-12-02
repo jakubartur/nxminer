@@ -8,6 +8,8 @@ minerd.exe
 *.bin
 *.d
 
+miner.conf
+
 autom4te.cache
 .deps
 
