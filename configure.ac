@@ -371,42 +371,6 @@ AM_CONDITIONAL([HAVE_CURSES], [test x$curses = xyes])
 AM_CONDITIONAL([HAVE_WINDOWS], [test x$have_win32 = xtrue])
 AM_CONDITIONAL([HAVE_x86_64], [test x$have_x86_64 = xtrue])
 
-dnl Find YASM
-has_yasm=false
-AC_PATH_PROG([YASM],[yasm],[false])
-if test "x$YASM" != "xfalse" ; then
-  AC_MSG_CHECKING([if yasm version is greater than 1.0.1])
-  yasmver=`yasm --version | head -1 | cut -d\  -f2`
-  yamajor=`echo $yasmver | cut -d. -f1`
-  yaminor=`echo $yasmver | cut -d. -f2`
-  yamini=`echo $yasmver | cut -d. -f3`
-  if test "$yamajor" -ge "1" ; then
-    if test "$yamajor" -eq "1" ; then
-      if test "$yaminor" -ge "0" ; then
-        if test "$yaminor" -eq "0"; then
-          if test "$yamini" -ge "1"; then
-            has_yasm=true
-          fi
-        else
-          has_yasm=true
-        fi
-      fi
-    fi
-  else
-    has_yasm=false
-  fi
-  if test "x$has_yasm" = "xtrue" ; then
-    AC_MSG_RESULT([yes])
-  else
-    AC_MSG_RESULT([no])
-  fi
-fi
-if test "x$has_yasm" = "xfalse" ; then
-  AC_MSG_NOTICE([yasm is required for the assembly algorithms. They will be skipped.])
-fi
-
-AM_CONDITIONAL([HAS_YASM], [test x$has_yasm = xtrue])
-
 AC_CONFIG_SUBDIRS([compat/jansson-2.5])
 JANSSON_LIBS="compat/jansson-2.5/src/.libs/libjansson.a"
 
