@@ -144,7 +144,6 @@ static int input_thr_id;
 int gpur_thr_id;
 static int api_thr_id;
 static int total_control_threads;
-bool hotplug_mode;
 static int new_devices;
 static int new_threads;
 static int start_devices;
@@ -5633,20 +5632,10 @@ void enable_device(struct cgpu_info* cgpu)
     wr_lock(&devices_lock);
     devices[cgpu->cgminer_id = cgminer_id_count++] = cgpu;
     wr_unlock(&devices_lock);
-    if (hotplug_mode)
-    {
-        new_threads += cgpu->threads;
+    mining_threads += cgpu->threads;
 #ifdef HAVE_CURSES
-        adj_width(mining_threads + new_threads, &dev_width);
+    adj_width(mining_threads, &dev_width);
 #endif
-    }
-    else
-    {
-        mining_threads += cgpu->threads;
-#ifdef HAVE_CURSES
-        adj_width(mining_threads, &dev_width);
-#endif
-    }
 #ifdef HAVE_OPENCL
     if (cgpu->drv->drv_id == DRIVER_OPENCL)
     {
@@ -5684,10 +5673,7 @@ bool add_cgpu(struct cgpu_info* cgpu)
     wr_lock(&devices_lock);
     devices = realloc(devices, sizeof(struct cgpu_info*) * (total_devices + new_devices + 2));
     wr_unlock(&devices_lock);
-    if (hotplug_mode)
-        devices[total_devices + new_devices++] = cgpu;
-    else
-        devices[total_devices++] = cgpu;
+    devices[total_devices++] = cgpu;
     return true;
 }
 

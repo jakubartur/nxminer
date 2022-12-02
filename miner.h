@@ -830,8 +830,6 @@ extern bool add_pool_details(struct pool* pool, bool live, char* url, char* user
 #define MAX_INTENSITY      14
 #define _MAX_INTENSITY_STR "14"
 
-extern bool hotplug_mode;
-extern int hotplug_time;
 extern struct list_head scan_devices;
 extern int nDevs;
 extern int opt_n_threads;

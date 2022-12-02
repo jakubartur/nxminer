@@ -333,9 +333,6 @@ The list of requests - a (*) means it requires privileged access - and replies a
                               queue, scantime, expiry
                               N is an integer in the range 0 to 9999
 
- usbstats      USBSTATS       Stats of all LIBUSB mining devices except ztex
-                              e.g. Name=MMQ,ID=0,Stat=SendWork,Count=99,...|
-
  pgaset|N,opt[,val] (*)
                none           There is no reply section just the STATUS section
                               stating the results of setting PGA N with opt[,val]
