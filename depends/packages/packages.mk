@@ -1,3 +1,3 @@
-packages:=openssl curl ncurses
+packages:=openssl curl ncurses ocl-icd
 
 native_packages := native_ccache
