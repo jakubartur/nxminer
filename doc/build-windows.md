@@ -7,7 +7,7 @@ This guide compiles Nxminer for windows on Unix. Building natively on Windows is
 Note: build-essential is installed because GCC is needed to build the depends
 
 ```
-sudo apt-get install g++-mingw-w64-x86-64 mingw-w64-x86-64-dev autoconf automake libtool pkg-config build-essential
+sudo apt-get install g++-mingw-w64-x86-64 mingw-w64-x86-64-dev autoconf automake libtool pkg-config build-essential ruby-full
 
 cd depends
 

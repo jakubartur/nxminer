@@ -7,7 +7,7 @@ This guide is for building on Ubuntu. Building on Debian, Centos, or another fla
 Run the following to install the base dependencies
 
 ```
-sudo apt-get install autoconf automake libtool pkg-config build-essential
+sudo apt-get install autoconf automake libtool pkg-config build-essential ruby-full
 
 cd depends
 
