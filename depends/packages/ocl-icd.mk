@@ -4,6 +4,10 @@ $(package)_download_path=https://github.com/OCL-dev/ocl-icd/archive/refs/tags/
 $(package)_file_name=v$($(package)_version).tar.gz
 $(package)_sha256_hash=a32b67c2d52ffbaf490be9fc18b46428ab807ab11eff7664d7ff75e06cfafd6d
 
+ifeq ($(host_os),mingw32)
+$(package)_dependencies=dlfcn-win32
+endif
+
 define $(package)_set_vars
 $(package)_config_opts=--enable-official-khronos-headers
 $(package)_config_opts+=--enable-pthread-once
