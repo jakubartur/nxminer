@@ -112,7 +112,7 @@ AC_ARG_ENABLE([static-build],
   [use_static_build=no])
 
   if test "x$use_static_build" = "xyes"; then
-    CPPFLAGS="-static -DCURL_STATICLIB $CPPFLAGS"
+    CPPFLAGS="-static -DCURL_STATICLIB -DNCURSES_STATIC $CPPFLAGS"
   fi
 
 if test "x$use_ccache" != "xno"; then
@@ -352,19 +352,9 @@ AC_ARG_WITH([curses],
 if test "x$curses" = "xno"; then
 	cursesmsg='User specified --without-curses. TUI support DISABLED'
 else
-	AC_SEARCH_LIBS(addstr, ncurses, [
-		curses=yes
-		cursesmsg="FOUND: ${ac_cv_search_addstr}"
-		AC_DEFINE([HAVE_CURSES], [1], [Defined to 1 if curses TUI support is wanted])
-	], [
-		if test "x$curses" = "xyes"; then
-			AC_MSG_ERROR([Could not find curses library - please install libncurses-dev (or configure --without-curses)])
-		else
-			AC_MSG_WARN([Could not find curses library - if you want a TUI, install libncurses-dev])
-			curses=no
-			cursesmsg='NOT FOUND. TUI support DISABLED'
-		fi
-	])
+	curses=yes
+    NCURSES_LIBS=" -lncurses -ltinfo"
+	AC_DEFINE([HAVE_CURSES], [1], [Defined to 1 if curses TUI support is wanted])
 fi
 
 AM_CONDITIONAL([HAVE_CURSES], [test x$curses = xyes])
@@ -456,7 +446,7 @@ echo
 echo "Configuration Options Summary:"
 echo
 
-echo "  curses.TUI...........: $cursesmsg"
+echo "  curses.TUI...........: $curses"
 
 if test "x$opencl" != xno; then
 	if test $found_opencl = 1; then

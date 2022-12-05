@@ -1,5 +1,6 @@
 .NOTPARALLEL :
 
+TERMINFO_PATH ?= $(BASEDIR)/terminfo
 SOURCES_PATH ?= $(BASEDIR)/sources
 WORK_PATH = $(BASEDIR)/work
 BASE_CACHE ?= $(BASEDIR)/built

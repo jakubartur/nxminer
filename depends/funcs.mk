@@ -47,6 +47,7 @@ final_build_id_long+=$($(package)_build_id_long)
 $(1)_build_subdir?=.
 $(1)_download_file?=$($(1)_file_name)
 $(1)_source_dir:=$(SOURCES_PATH)
+$(1)_terminfo_dir:=$(TERMINFO_PATH)
 $(1)_source:=$$($(1)_source_dir)/$($(1)_file_name)
 $(1)_staging_dir=$(base_staging_dir)/$(host)/$(1)/$($(1)_version)-$($(1)_build_id)
 $(1)_staging_prefix_dir:=$$($(1)_staging_dir)$($($(1)_type)_prefix)
