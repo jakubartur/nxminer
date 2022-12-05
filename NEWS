@@ -1,3 +1,9 @@
+Version 2.0.0 - December 5, 2022
+- GPU mining for nexa-schnorr has been added
+- CPU mining has been removed
+- Building now uses a depends system that builds all dependencies from scratch
+- Some bugfixes and code cleanup
+
 
 Version 1.0.0 - June29, 2022
 This version of NxMiner is forked from CGMiner 2.11.3 with the following changes:
