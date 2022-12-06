@@ -1,3 +1,7 @@
+Version 2.0.1 - December 6, 2022
+- Fixed a memory leak issue in the GPU mining code
+- removal of some lingering CPU mining logic (CPU mining support removed in 2.0.0)
+
 Version 2.0.0 - December 5, 2022
 - GPU mining for nexa-schnorr has been added
 - CPU mining has been removed
