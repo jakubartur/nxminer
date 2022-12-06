@@ -366,13 +366,7 @@ JANSSON_LIBS="compat/jansson-2.5/src/.libs/libjansson.a"
 
 PKG_PROG_PKG_CONFIG()
 
-if test "x$have_win32" != xtrue; then
-	PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.25.0], [AC_DEFINE([CURL_HAS_KEEPALIVE], [1], [Defined if version of curl supports keepalive.])],
-		[PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.18.2], ,[AC_MSG_ERROR([Missing required libcurl dev >= 7.18.2])])])
-else
-	PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.25.0], ,[AC_MSG_ERROR([Missing required libcurl dev >= 7.25.0])])
-	AC_DEFINE([CURL_HAS_KEEPALIVE], [1])
-fi
+PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.25.0], , [AC_MSG_ERROR([Missing required libcurl dev >= 7.25.0])])
 
 AC_SUBST(LIBCURL_LIBS)
 
