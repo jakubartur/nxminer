@@ -189,7 +189,6 @@ static inline int fsync(int fd)
 enum drv_driver
 {
     DRIVER_OPENCL = 0,
-    DRIVER_CPU,
     DRIVER_MAX
 };
 
@@ -826,7 +825,6 @@ extern bool add_pool_details(struct pool* pool, bool live, char* url, char* user
 
 extern struct list_head scan_devices;
 extern int nDevs;
-extern int opt_n_threads;
 extern int num_processors;
 extern int hw_errors;
 extern bool use_syslog;

@@ -1700,7 +1700,7 @@ static void devstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __ma
 	numpga = numpgas();
 #endif
 
-	if (numgpu == 0 && opt_n_threads == 0 && numpga == 0 && numasc == 0) {
+	if (numgpu == 0 && numpga == 0 && numasc == 0) {
 		message(io_data, MSG_NODEVS, 0, NULL, isjson);
 		return;
 	}
