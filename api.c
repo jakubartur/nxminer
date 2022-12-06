@@ -2034,10 +2034,10 @@ static void poolstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __m
 		root = api_add_diff(root, "Difficulty Rejected", &(pool->diff_rejected), false);
 		root = api_add_diff(root, "Difficulty Stale", &(pool->diff_stale), false);
 		root = api_add_diff(root, "Last Share Difficulty", &(pool->last_share_diff), false);
-		root = api_add_bool(root, "Has Stratum", &(pool->has_stratum), false);
-		root = api_add_bool(root, "Stratum Active", &(pool->stratum_active), false);
-		if (pool->stratum_active)
-			root = api_add_escape(root, "Stratum URL", pool->stratum_url, false);
+		root = api_add_bool(root, "Has Stratum", &(pool->has_echelon), false);
+		root = api_add_bool(root, "Stratum Active", &(pool->echelon_active), false);
+		if (pool->echelon_active)
+			root = api_add_escape(root, "Stratum URL", pool->echelon_url, false);
 		else
 			root = api_add_const(root, "Stratum URL", BLANK, false);
 		root = api_add_uint64(root, "Best Share", &(pool->best_diff), true);
@@ -2371,7 +2371,7 @@ static void addpool(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
 	}
 
 	pool = add_pool();
-	detect_stratum(pool, url);
+	detect_echelon(pool, url);
 	add_pool_details(pool, true, url, user, pass);
 
 	ptr = escape_string(url, isjson);

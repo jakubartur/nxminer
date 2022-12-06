@@ -785,7 +785,6 @@ extern pthread_mutex_t restart_lock;
 extern pthread_cond_t restart_cond;
 
 extern void thread_reportin(struct thr_info* thr);
-extern void clear_stratum_shares(struct pool* pool);
 extern int restart_wait(unsigned int mstime);
 
 extern void kill_work(void);
@@ -812,7 +811,7 @@ extern void api(int thr_id);
 
 extern struct pool* current_pool(void);
 extern int enabled_pools;
-extern bool detect_stratum(struct pool* pool, char* url);
+extern bool detect_echelon(struct pool* pool, char* url);
 extern void print_summary(void);
 extern struct pool* add_pool(void);
 extern bool add_pool_details(struct pool* pool, bool live, char* url, char* user, char* pass);
@@ -880,7 +879,7 @@ enum pool_enable
     POOL_REJECTING,
 };
 
-struct stratum_work
+struct echelon_work
 {
     uint8_t* job_id;
     uint64_t candidateId;
@@ -964,24 +963,24 @@ struct pool
     struct cgminer_stats cgminer_stats;
     struct cgminer_pool_stats cgminer_pool_stats;
 
-    /* Stratum variables */
-    char* stratum_url;
-    char* stratum_port;
-    CURL* stratum_curl;
+    /* Echelon variables */
+    char* echelon_url;
+    char* echelon_port;
+    CURL* echelon_curl;
     SOCKETTYPE sock;
     char* sockbuf;
     size_t sockbuf_size;
     char* sockaddr_url; /* stripped url used for sockaddr */
     char* sessionid;
     uint16_t nonce1; // session id nonce
-    bool has_stratum;
-    bool stratum_active;
-    bool stratum_init;
-    bool stratum_notify;
-    struct stratum_work swork;
-    pthread_t stratum_thread;
-    pthread_mutex_t stratum_lock;
-    int sshares; /* stratum shares submitted waiting on response */
+    bool has_echelon;
+    bool echelon_active;
+    bool echelon_init;
+    bool echelon_notify;
+    struct echelon_work swork;
+    pthread_t echelon_thread;
+    pthread_mutex_t echelon_lock;
+    int sshares; /* echelon shares submitted waiting on response */
     struct timeval tv_lastwork;
 };
 
@@ -1014,7 +1013,7 @@ struct work
     bool block;
     bool queued;
 
-    bool stratum;
+    bool echelon;
     char* job_id;
     uint64_t candidateId;
     uint32_t nBits;
@@ -1031,7 +1030,7 @@ struct work
 
     double sdiff;
 
-    uint16_t nonce1; // used for session id in stratum
+    uint16_t nonce1; // used for session id in echelon
 
     struct timeval tv_getwork;
     struct timeval tv_getwork_reply;

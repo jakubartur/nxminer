@@ -44,15 +44,9 @@ struct cgpu_info;
 
 void difficulty_to_target(double difficulty, uint8_t* res);
 double nbits_to_difficulty(const uint32_t* nBits);
-bool stratum_send(struct pool* pool, char* s, ssize_t len);
 bool sock_full(struct pool* pool);
 char* recv_line(struct pool* pool);
-bool parse_method(struct pool* pool, char* s);
 bool extract_sockaddr(struct pool* pool, char* url);
-bool auth_stratum(struct pool* pool);
-bool initiate_stratum(struct pool* pool);
-bool restart_stratum(struct pool* pool);
-void suspend_stratum(struct pool* pool);
 void dev_error(struct cgpu_info* dev, enum dev_reason reason);
 void RenameThread(const char* name);
 

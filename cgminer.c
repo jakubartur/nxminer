@@ -444,7 +444,7 @@ struct pool* add_pool(void)
     if (unlikely(pthread_cond_init(&pool->cr_cond, NULL)))
         nxquit(1, "Failed to pthread_cond_init in add_pool");
     cglock_init(&pool->data_lock);
-    mutex_init(&pool->stratum_lock);
+    mutex_init(&pool->echelon_lock);
     INIT_LIST_HEAD(&pool->curlring);
 
     /* Make sure the pool doesn't think we've been idle since time 0 */
@@ -566,21 +566,21 @@ static char* set_rr(enum pool_strategy* strategy)
     return NULL;
 }
 
-/* Detect that url is for a stratum protocol either via the presence of
- * stratum+tcp or by detecting a stratum server response */
-bool detect_stratum(struct pool* pool, char* url)
+/* Detect that url is for a echelon protocol either via the presence of
+ * stratum+tcp or by detecting a echelon server response */
+bool detect_echelon(struct pool* pool, char* url)
 {
     if (!extract_sockaddr(pool, url))
+    {
         return false;
-
+    }
     if (!strncasecmp(url, "stratum+tcp://", 14))
     {
         pool->rpc_url = strdup(url);
-        pool->has_stratum = true;
-        pool->stratum_url = pool->sockaddr_url;
+        pool->has_echelon = true;
+        pool->echelon_url = pool->sockaddr_url;
         return true;
     }
-
     return false;
 }
 
@@ -590,12 +590,14 @@ static char* set_url(char* arg)
 
     total_urls++;
     if (total_urls > total_pools)
+    {
         add_pool();
+    }
     pool = pools[total_urls - 1];
-
-    if (detect_stratum(pool, arg))
+    if (detect_echelon(pool, arg))
+    {
         return NULL;
-
+    }
     opt_set_charp(arg, &pool->rpc_url);
     if (strncmp(arg, "http://", 7) && strncmp(arg, "https://", 8))
     {
@@ -609,39 +611,40 @@ static char* set_url(char* arg)
         strncat(httpinput, arg, 248);
         pool->rpc_url = httpinput;
     }
-
     return NULL;
 }
 
 static char* set_user(const char* arg)
 {
     struct pool* pool;
-
     if (total_userpasses)
+    {
         return "Use only user + pass or userpass, but not both";
+    }
     total_users++;
     if (total_users > total_pools)
+    {
         add_pool();
-
+    }
     pool = pools[total_users - 1];
     opt_set_charp(arg, &pool->rpc_user);
-
     return NULL;
 }
 
 static char* set_pass(const char* arg)
 {
     struct pool* pool;
-
     if (total_userpasses)
+    {
         return "Use only user + pass or userpass, but not both";
+    }
     total_passes++;
     if (total_passes > total_pools)
+    {
         add_pool();
-
+    }
     pool = pools[total_passes - 1];
     opt_set_charp(arg, &pool->rpc_pass);
-
     return NULL;
 }
 
@@ -649,23 +652,28 @@ static char* set_userpass(const char* arg)
 {
     struct pool* pool;
     char* updup;
-
     if (total_users || total_passes)
+    {
         return "Use only user + pass or userpass, but not both";
+    }
     total_userpasses++;
     if (total_userpasses > total_pools)
+    {
         add_pool();
-
+    }
     pool = pools[total_userpasses - 1];
     updup = strdup(arg);
     opt_set_charp(arg, &pool->rpc_userpass);
     pool->rpc_user = strtok(updup, ":");
     if (!pool->rpc_user)
+    {
         return "Failed to find : delimited user info";
+    }
     pool->rpc_pass = strtok(NULL, ":");
     if (!pool->rpc_pass)
+    {
         return "Failed to find : delimited pass info";
-
+    }
     return NULL;
 }
 
@@ -680,9 +688,13 @@ static char* enable_debug(bool* flag)
 static char* set_schedtime(const char* arg, struct schedtime* st)
 {
     if (sscanf(arg, "%d:%d", &st->tm.tm_hour, &st->tm.tm_min) != 2)
+    {
         return "Invalid time set, should be HH:MM";
+    }
     if (st->tm.tm_hour > 23 || st->tm.tm_min > 59 || st->tm.tm_hour < 0 || st->tm.tm_min < 0)
+    {
         return "Invalid time set.";
+    }
     st->enable = true;
     return NULL;
 }
@@ -691,26 +703,30 @@ static char* set_sharelog(char* arg)
 {
     char* r = "";
     long int i = strtol(arg, &r, 10);
-
     if ((!*r) && i >= 0 && i <= INT_MAX)
     {
         sharelog_file = fdopen((int)i, "a");
         if (!sharelog_file)
+        {
             applog(LOG_ERR, "Failed to open fd %u for share log", (unsigned int)i);
+        }
     }
     else if (!strcmp(arg, "-"))
     {
         sharelog_file = stdout;
         if (!sharelog_file)
+        {
             applog(LOG_ERR, "Standard output missing for share log");
+        }
     }
     else
     {
         sharelog_file = fopen(arg, "a");
         if (!sharelog_file)
+        {
             applog(LOG_ERR, "Failed to open %s for share log", arg);
+        }
     }
-
     return NULL;
 }
 
@@ -721,12 +737,15 @@ char* set_temp_cutoff(char* arg)
     int val;
 
     if (!(arg && arg[0]))
+    {
         return "Invalid parameters for set temp cutoff";
+    }
     val = atoi(arg);
     if (val < 0 || val > 200)
+    {
         return "Invalid value passed to set temp cutoff";
+    }
     temp_cutoff_str = arg;
-
     return NULL;
 }
 
@@ -740,11 +759,14 @@ static void load_temp_cutoffs()
         for (device = 0, nextptr = strtok(temp_cutoff_str, ","); nextptr; ++device, nextptr = strtok(NULL, ","))
         {
             if (device >= total_devices)
+            {
                 nxquit(1, "Too many values passed to set temp cutoff");
+            }
             val = atoi(nextptr);
             if (val < 0 || val > 200)
+            {
                 nxquit(1, "Invalid value passed to set temp cutoff");
-
+            }
             rd_lock(&devices_lock);
             devices[device]->cutofftemp = val;
             rd_unlock(&devices_lock);
@@ -756,7 +778,9 @@ static void load_temp_cutoffs()
         for (i = device; i < total_devices; ++i)
         {
             if (!devices[i]->cutofftemp)
+            {
                 devices[i]->cutofftemp = opt_cutofftemp;
+            }
         }
         rd_unlock(&devices_lock);
         return;
@@ -765,7 +789,9 @@ static void load_temp_cutoffs()
     {
         rd_lock(&devices_lock);
         for (i = device; i < total_devices; ++i)
+        {
             devices[i]->cutofftemp = val;
+        }
         rd_unlock(&devices_lock);
     }
 }
@@ -1231,24 +1257,25 @@ static char* load_config(const char* arg, void __maybe_unused* unused)
     char* json_error;
 
     if (!cnfbuf)
+    {
         cnfbuf = strdup(arg);
-
+    }
     if (++include_count > JSON_MAX_DEPTH)
+    {
         return JSON_MAX_DEPTH_ERR;
-
+    }
     config = json_load_file(arg, 0, &err);
     if (!json_is_object(config))
     {
         json_error = malloc(JSON_LOAD_ERROR_LEN + strlen(arg) + strlen(err.text));
         if (!json_error)
+        {
             nxquit(1, "Malloc failure in json error");
-
+        }
         sprintf(json_error, JSON_LOAD_ERROR, arg, err.text);
         return json_error;
     }
-
     config_loaded = true;
-
     /* Parse the config now, so we can override it.  That can keep pointers
      * so don't free config object. */
     return parse_config(config, true);
@@ -1257,7 +1284,6 @@ static char* load_config(const char* arg, void __maybe_unused* unused)
 static char* set_default_config(const char* arg)
 {
     opt_set_charp(arg, &default_config);
-
     return NULL;
 }
 
@@ -1266,11 +1292,11 @@ void default_save_file(char* filename);
 static void load_default_config(void)
 {
     cnfbuf = malloc(PATH_MAX);
-
     default_save_file(cnfbuf);
-
     if (!access(cnfbuf, R_OK))
+    {
         load_config(cnfbuf, NULL);
+    }
     else
     {
         free(cnfbuf);
@@ -1342,7 +1368,9 @@ static bool jobj_binary(const json_t* obj, const char* key, void* buf, size_t bu
     if (unlikely(!tmp))
     {
         if (unlikely(required))
+        {
             applog(LOG_ERR, "JSON key '%s' not found", key);
+        }
         return false;
     }
     hexstr = json_string_value(tmp);
@@ -1352,8 +1380,9 @@ static bool jobj_binary(const json_t* obj, const char* key, void* buf, size_t bu
         return false;
     }
     if (!hex2bin(buf, hexstr, buflen))
+    {
         return false;
-
+    }
     return true;
 }
 
@@ -1362,7 +1391,9 @@ static struct work* make_work(void)
     struct work* work = calloc(1, sizeof(struct work));
 
     if (unlikely(!work))
+    {
         nxquit(1, "Failed to calloc work in make_work");
+    }
     cg_wlock(&control_lock);
     work->id = total_work++;
     cg_wunlock(&control_lock);
@@ -1392,7 +1423,6 @@ static char* workpadding =
 int dev_from_id(int thr_id)
 {
     struct cgpu_info* cgpu = get_thr_cgpu(thr_id);
-
     return cgpu->device_id;
 }
 
@@ -1408,13 +1438,18 @@ void decay_time(double* f, double fadd)
     {
         ratio = fadd / *f;
         if (ratio > 1)
+        {
             ratio = 1 / ratio;
+        }
     }
-
     if (ratio > 0.63)
+    {
         *f = (fadd * 0.58 + *f) / 1.58;
+    }
     else
+    {
         *f = (fadd + *f * 0.58) / 1.58;
+    }
 }
 
 static int __total_staged(void)
@@ -1466,7 +1501,9 @@ static bool curses_active_locked(void)
     lock_curses();
     ret = curses_active;
     if (!ret)
+    {
         unlock_curses();
+    }
     return ret;
 }
 #endif
@@ -1474,7 +1511,6 @@ static bool curses_active_locked(void)
 void tailsprintf(char* f, const char* fmt, ...)
 {
     va_list ap;
-
     va_start(ap, fmt);
     vsprintf(f + strlen(f), fmt, ap);
     va_end(ap);
@@ -1536,20 +1572,22 @@ static void suffix_string_double(double val, char* buf, int sigdigits)
         dval = val;
         decimal = false;
     }
-
     if (!sigdigits)
     {
         if (decimal)
+        {
             sprintf(buf, "%.3g%s", dval, suffix);
+        }
         else
+        {
             sprintf(buf, "%d%s", (unsigned int)dval, suffix);
+        }
     }
     else
     {
         /* Always show sigdigits + 1, padded on right with zeroes
          * followed by suffix */
         int ndigits = sigdigits - 1 - (dval > 0.0 ? floor(log10(dval)) : 0);
-
         sprintf(buf, "%*.*f%s", sigdigits + 1, ndigits, dval, suffix);
     }
 }
@@ -1610,20 +1648,22 @@ static void suffix_string(uint64_t val, char* buf, int sigdigits)
         dval = val;
         decimal = false;
     }
-
     if (!sigdigits)
     {
         if (decimal)
+        {
             sprintf(buf, "%.3g%s", dval, suffix);
+        }
         else
+        {
             sprintf(buf, "%d%s", (unsigned int)dval, suffix);
+        }
     }
     else
     {
         /* Always show sigdigits + 1, padded on right with zeroes
          * followed by suffix */
         int ndigits = sigdigits - 1 - (dval > 0.0 ? floor(log10(dval)) : 0);
-
         sprintf(buf, "%*.*f%s", sigdigits + 1, ndigits, dval, suffix);
     }
 }
@@ -1681,9 +1721,9 @@ static void curses_print_status(void)
     {
         mvwprintw(statuswin, 4, 0, " Connected to multiple pools without LP");
     }
-    else // (pool->has_stratum)
+    else // (pool->has_echelon)
     {
-        mvwprintw(statuswin, 4, 0, " Connected to %s diff %s with stratum as user %s", pool->sockaddr_url, pool->diff,
+        mvwprintw(statuswin, 4, 0, " Connected to %s diff %s with echelon as user %s", pool->sockaddr_url, pool->diff,
             pool->rpc_user);
     }
     wclrtoeol(statuswin);
@@ -1700,7 +1740,9 @@ static void curses_print_status(void)
 static void adj_width(int var, int* length)
 {
     if ((int)(log10(var) + 1) > *length)
+    {
         (*length)++;
+    }
 }
 
 static int dev_width;
@@ -1714,13 +1756,15 @@ static void curses_print_devstatus(int thr_id)
     uint64_t dh64, dr64;
 
     if (opt_compact)
+    {
         return;
-
+    }
     cgpu = get_thr_cgpu(thr_id);
 
     if (cgpu->cgminer_id >= start_devices || devcursor + cgpu->cgminer_id > LINES - 2)
+    {
         return;
-
+    }
     cgpu->utility = cgpu->accepted / total_secs * 60;
 
     wmove(statuswin, devcursor + cgpu->cgminer_id, 0);
@@ -1735,15 +1779,25 @@ static void curses_print_devstatus(int thr_id)
     suffix_string(dr64, displayed_rolling, 4);
 
     if (cgpu->status == LIFE_DEAD)
+    {
         wprintw(statuswin, "DEAD  ");
+    }
     else if (cgpu->status == LIFE_SICK)
+    {
         wprintw(statuswin, "SICK  ");
+    }
     else if (cgpu->deven == DEV_DISABLED)
+    {
         wprintw(statuswin, "OFF   ");
+    }
     else if (cgpu->deven == DEV_RECOVER)
+    {
         wprintw(statuswin, "REST  ");
+    }
     else
+    {
         wprintw(statuswin, "%6s", displayed_rolling);
+    }
     adj_width(cgpu->accepted, &awidth);
     adj_width(cgpu->rejected, &rwidth);
     adj_width(cgpu->hw_errors, &hwwidth);
@@ -1763,7 +1817,9 @@ static void curses_print_devstatus(int thr_id)
 static void print_status(int thr_id)
 {
     if (!curses_active)
+    {
         text_print_status(thr_id);
+    }
 }
 
 #ifdef HAVE_CURSES
@@ -2087,7 +2143,7 @@ static bool pool_unworkable(struct pool* pool)
         return true;
     if (pool->enabled != POOL_ENABLED)
         return true;
-    if (pool->has_stratum && !pool->stratum_active)
+    if (pool->has_echelon && !pool->echelon_active)
         return true;
     return false;
 }
@@ -2530,13 +2586,13 @@ static bool stale_work(struct work* work, bool share)
 
     pool = work->pool;
 
-    if (!share && pool->has_stratum)
+    if (!share && pool->has_echelon)
     {
         bool same_job;
 
-        if (!pool->stratum_active || !pool->stratum_notify)
+        if (!pool->echelon_active || !pool->echelon_notify)
         {
-            applog(LOG_DEBUG, "Work stale due to stratum inactive");
+            applog(LOG_DEBUG, "Work stale due to echelon inactive");
             return true;
         }
 
@@ -2547,7 +2603,7 @@ static bool stale_work(struct work* work, bool share)
         cg_runlock(&pool->data_lock);
         if (!same_job)
         {
-            applog(LOG_DEBUG, "Work stale due to stratum job_id mismatch");
+            applog(LOG_DEBUG, "Work stale due to echelon job_id mismatch");
             return true;
         }
     }
@@ -2625,14 +2681,14 @@ static void* submit_work_thread(void* userdata)
         char s[1024];
 
         sshare->sshare_time = time(NULL);
-        /* This work item is freed in parse_stratum_response */
+        /* This work item is freed in parse_echelon_response */
         sshare->work = work;
         noncehex = bin2hex(work->nonce, 16);
         char* headerCommitmentHex = bin2hex(work->headerCommitment, 32);
         memset(s, 0, 1024);
 
         mutex_lock(&sshare_lock);
-        /* Give the stratum share a unique id */
+        /* Give the echelon share a unique id */
         sshare->id = swork_id++;
         mutex_unlock(&sshare_lock);
 
@@ -2644,13 +2700,13 @@ static void* submit_work_thread(void* userdata)
         free(noncehex);
 
         /* Try resubmitting for up to 2 minutes if we fail to submit
-         * once and the stratum pool nonce1 still matches suggesting
+         * once and the echelon pool nonce1 still matches suggesting
          * we may be able to resume. */
         while (time(NULL) < sshare->sshare_time + 120)
         {
             bool sessionid_match;
 
-            if (likely(stratum_send(pool, s, strlen(s))))
+            if (likely(echelon_send(pool, s, strlen(s))))
             {
                 if (pool_tclear(pool, &pool->submit_fail))
                 {
@@ -2660,13 +2716,13 @@ static void* submit_work_thread(void* userdata)
                 HASH_ADD_INT(stratum_shares, id, sshare);
                 pool->sshares++;
                 mutex_unlock(&sshare_lock);
-                applog(LOG_DEBUG, "Successfully submitted, adding to stratum_shares db");
+                applog(LOG_DEBUG, "Successfully submitted, adding to echelon_shares db");
                 submitted = true;
                 break;
             }
             if (!pool_tset(pool, &pool->submit_fail) && cnx_needed(pool))
             {
-                applog(LOG_WARNING, "Pool %d stratum share submission failure", pool->pool_no);
+                applog(LOG_WARNING, "Pool %d echelon share submission failure", pool->pool_no);
                 total_ro++;
                 pool->remotefail_occasions++;
             }
@@ -2677,7 +2733,7 @@ static void* submit_work_thread(void* userdata)
 
             if (!sessionid_match)
             {
-                applog(LOG_DEBUG, "No matching session id for resubmitting stratum share");
+                applog(LOG_DEBUG, "No matching session id for resubmitting echelon share");
                 break;
             }
             /* Retry every 5 seconds */
@@ -2686,7 +2742,7 @@ static void* submit_work_thread(void* userdata)
 
         if (unlikely(!submitted))
         {
-            applog(LOG_DEBUG, "Failed to submit stratum share, discarding");
+            applog(LOG_DEBUG, "Failed to submit echelon share, discarding");
             free_work(work);
             free(sshare);
             pool->stale_shares++;
@@ -4058,7 +4114,7 @@ out_unlock:
     }
 }
 
-static void stratum_share_result(json_t* val, json_t* res_val, json_t* err_val, struct stratum_share* sshare)
+static void echelon_share_result(json_t* val, json_t* res_val, json_t* err_val, struct stratum_share* sshare)
 {
     struct work* work = sshare->work;
     char hashshow[65];
@@ -4068,9 +4124,9 @@ static void stratum_share_result(json_t* val, json_t* res_val, json_t* err_val, 
     share_result(val, res_val, err_val, work, hashshow, false, "");
 }
 
-/* Parses stratum json responses and tries to find the id that the request
+/* Parses echelon json responses and tries to find the id that the request
  * matched to and treat it accordingly. */
-static bool parse_stratum_response(struct pool* pool, char* s)
+static bool parse_echelon_response(struct pool* pool, char* s)
 {
     json_t *val = NULL, *err_val, *res_val, *id_val;
     struct stratum_share* sshare;
@@ -4117,12 +4173,16 @@ static bool parse_stratum_response(struct pool* pool, char* s)
     if (!sshare)
     {
         if (json_is_true(res_val))
-            applog(LOG_NOTICE, "Accepted untracked stratum share from pool %d", pool->pool_no);
+        {
+            applog(LOG_NOTICE, "Accepted untracked echelon share from pool %d", pool->pool_no);
+        }
         else
-            applog(LOG_NOTICE, "Rejected untracked stratum share from pool %d", pool->pool_no);
+        {
+            applog(LOG_NOTICE, "Rejected untracked echelon share from pool %d", pool->pool_no);
+        }
         goto out;
     }
-    stratum_share_result(val, res_val, err_val, sshare);
+    echelon_share_result(val, res_val, err_val, sshare);
     free_work(sshare->work);
     free(sshare);
 
@@ -4134,7 +4194,7 @@ out:
     return ret;
 }
 
-void clear_stratum_shares(struct pool* pool)
+static void clear_echelon_shares(struct pool* pool)
 {
     struct stratum_share *sshare, *tmpshare;
     double diff_cleared = 0;
@@ -4157,7 +4217,7 @@ void clear_stratum_shares(struct pool* pool)
 
     if (cleared)
     {
-        applog(LOG_WARNING, "Lost %d shares due to stratum disconnect on pool %d", cleared, pool->pool_no);
+        applog(LOG_WARNING, "Lost %d shares due to echelon disconnect on pool %d", cleared, pool->pool_no);
         pool->stale_shares += cleared;
         total_stale += cleared;
         pool->diff_stale += diff_cleared;
@@ -4205,8 +4265,8 @@ static bool cnx_needed(struct pool* pool)
     if (pool_strategy == POOL_LOADBALANCE)
         return true;
 
-    /* Idle stratum pool needs something to kick it alive again */
-    if (pool->has_stratum && pool->idle)
+    /* Idle echelon pool needs something to kick it alive again */
+    if (pool->has_echelon && pool->idle)
         return true;
 
     /* Getwork pools without opt_fail_only need backup pools up to be able
@@ -4230,15 +4290,15 @@ static bool cnx_needed(struct pool* pool)
 
 static void wait_lpcurrent(struct pool* pool);
 static void pool_resus(struct pool* pool);
-static void gen_stratum_work(struct pool* pool, struct work* work);
+static void gen_echelon_work(struct pool* pool, struct work* work);
 
-static void stratum_resumed(struct pool* pool)
+static void echelon_resumed(struct pool* pool)
 {
-    if (!pool->stratum_notify)
+    if (!pool->echelon_notify)
         return;
     if (pool_tclear(pool, &pool->idle))
     {
-        applog(LOG_INFO, "Stratum connection to pool %d resumed", pool->pool_no);
+        applog(LOG_INFO, "Echelon connection to pool %d resumed", pool->pool_no);
         pool_resus(pool);
     }
 }
@@ -4253,18 +4313,18 @@ static bool supports_resume(struct pool* pool)
     return ret;
 }
 
-/* One stratum thread per pool that has stratum waits on the socket checking
+/* One echelon thread per pool that has echelon waits on the socket checking
  * for new messages and for the integrity of the socket connection. We reset
  * the connection based on the integrity of the receive side only as the send
  * side will eventually expire data it fails to send. */
-static void* stratum_thread(void* userdata)
+static void* echelon_thread(void* userdata)
 {
     struct pool* pool = (struct pool*)userdata;
     char threadname[16];
 
     pthread_detach(pthread_self());
 
-    snprintf(threadname, 16, "stratum/%d", pool->pool_no);
+    snprintf(threadname, 16, "echelon/%d", pool->pool_no);
     RenameThread(threadname);
 
     while (42)
@@ -4282,15 +4342,15 @@ static void* stratum_thread(void* userdata)
          * pool */
         if (!sock_full(pool) && !cnx_needed(pool))
         {
-            suspend_stratum(pool);
-            clear_stratum_shares(pool);
+            suspend_echelon(pool);
+            clear_echelon_shares(pool);
             clear_pool_work(pool);
 
             wait_lpcurrent(pool);
-            if (!restart_stratum(pool))
+            if (!restart_echelon(pool))
             {
                 pool_died(pool);
-                while (!restart_stratum(pool))
+                while (!restart_echelon(pool))
                 {
                     if (pool->removed)
                         goto out;
@@ -4310,46 +4370,46 @@ static void* stratum_thread(void* userdata)
          * as dead */
         if (!sock_full(pool) && (sel_ret = select(pool->sock + 1, &rd, NULL, NULL, &timeout)) < 1)
         {
-            applog(LOG_DEBUG, "Stratum select failed on pool %d with value %d", pool->pool_no, sel_ret);
+            applog(LOG_DEBUG, "Echelon select failed on pool %d with value %d", pool->pool_no, sel_ret);
             s = NULL;
         }
         else
             s = recv_line(pool);
         if (!s)
         {
-            applog(LOG_NOTICE, "Stratum connection to pool %d interrupted", pool->pool_no);
+            applog(LOG_NOTICE, "Echelon connection to pool %d interrupted", pool->pool_no);
             pool->getfail_occasions++;
             total_go++;
 
-            /* If the socket to our stratum pool disconnects, all
+            /* If the socket to our echelon pool disconnects, all
              * tracked submitted shares are lost and we will leak
              * the memory if we don't discard their records. */
             if (!supports_resume(pool))
-                clear_stratum_shares(pool);
+                clear_echelon_shares(pool);
             clear_pool_work(pool);
             if (pool == current_pool())
                 restart_threads();
 
-            if (restart_stratum(pool))
+            if (restart_echelon(pool))
                 continue;
 
             pool_died(pool);
-            while (!restart_stratum(pool))
+            while (!restart_echelon(pool))
             {
                 if (pool->removed)
                     goto out;
                 nmsleep(30000);
             }
-            stratum_resumed(pool);
+            echelon_resumed(pool);
             continue;
         }
 
         /* Check this pool hasn't died while being a backup pool and
          * has not had its idle flag cleared */
-        stratum_resumed(pool);
+        echelon_resumed(pool);
 
-        if (!parse_method(pool, s) && !parse_stratum_response(pool, s))
-            applog(LOG_INFO, "Unknown stratum msg: %s", s);
+        if (!parse_echelon_method(pool, s) && !parse_echelon_response(pool, s))
+            applog(LOG_INFO, "Unknown echelon msg: %s", s);
         free(s);
         if (pool->swork.clean)
         {
@@ -4358,15 +4418,15 @@ static void* stratum_thread(void* userdata)
             /* Generate a single work item to update the current
              * block database */
             pool->swork.clean = false;
-            gen_stratum_work(pool, work);
+            gen_echelon_work(pool, work);
             if (test_work_current(work))
             {
-                /* Only accept a work restart if this stratum
+                /* Only accept a work restart if this echelon
                  * connection is from the current pool */
                 if (pool == current_pool())
                 {
                     restart_threads();
-                    applog(LOG_NOTICE, "Stratum from pool %d requested work restart", pool->pool_no);
+                    applog(LOG_NOTICE, "Echelon from pool %d requested work restart", pool->pool_no);
                 }
             }
             else
@@ -4379,19 +4439,19 @@ out:
     return NULL;
 }
 
-static void init_stratum_thread(struct pool* pool)
+static void init_echelon_thread(struct pool* pool)
 {
-    if (unlikely(pthread_create(&pool->stratum_thread, NULL, stratum_thread, (void*)pool)))
-        nxquit(1, "Failed to create stratum thread");
+    if (unlikely(pthread_create(&pool->echelon_thread, NULL, echelon_thread, (void*)pool)))
+        nxquit(1, "Failed to create echelon thread");
 }
 
-static bool stratum_works(struct pool* pool)
+static bool echelon_works(struct pool* pool)
 {
-    applog(LOG_INFO, "Testing pool %d stratum %s", pool->pool_no, pool->stratum_url);
-    if (!extract_sockaddr(pool, pool->stratum_url))
+    applog(LOG_INFO, "Testing pool %d echelon %s", pool->pool_no, pool->echelon_url);
+    if (!extract_sockaddr(pool, pool->echelon_url))
         return false;
 
-    if (!initiate_stratum(pool))
+    if (!initiate_echelon(pool))
         return false;
 
     return true;
@@ -4405,27 +4465,27 @@ static bool pool_active(struct pool* pool, bool pinging)
 
     applog(LOG_INFO, "Testing pool %s", pool->rpc_url);
 
-    /* This is the central point we activate stratum when we can */
-retry_stratum:
-    if (pool->has_stratum)
+    /* This is the central point we activate echelon when we can */
+retry_echelon:
+    if (pool->has_echelon)
     {
-        /* We create the stratum thread for each pool just after
+        /* We create the echelon thread for each pool just after
          * successful authorisation. Once the init flag has been set
-         * we never unset it and the stratum thread is responsible for
+         * we never unset it and the echelon thread is responsible for
          * setting/unsetting the active flag */
-        bool init = pool_tset(pool, &pool->stratum_init);
+        bool init = pool_tset(pool, &pool->echelon_init);
 
         if (!init)
         {
-            bool ret = initiate_stratum(pool) && auth_stratum(pool);
+            bool ret = initiate_echelon(pool) && auth_echelon(pool);
 
             if (ret)
-                init_stratum_thread(pool);
+                init_echelon_thread(pool);
             else
-                pool_tclear(pool, &pool->stratum_init);
+                pool_tclear(pool, &pool->echelon_init);
             return ret;
         }
-        return pool->stratum_active;
+        return pool->echelon_active;
     }
     return ret;
 }
@@ -4498,10 +4558,10 @@ static void set_work_target(struct work *work, double diff)
 	memcpy(work->target, target, 32);
 }
 
-/* Generates stratum based work based on the most recent notify information
+/* Generates echelon based work based on the most recent notify information
  * from the pool. This will keep generating work while a pool is down so we use
- * other means to detect when the pool has died in stratum_thread */
-static void gen_stratum_work(struct pool* pool, struct work* work)
+ * other means to detect when the pool has died in echelon_thread */
+static void gen_echelon_work(struct pool* pool, struct work* work)
 {
     uint32_t* data32;
     uint32_t* swap32;
@@ -4515,8 +4575,8 @@ static void gen_stratum_work(struct pool* pool, struct work* work)
     cg_dlock(&pool->data_lock);
     align_len(&alloc_len);
 
-    /* Store the stratum work diff to check it still matches the pool's
-     * stratum diff when submitting shares */
+    /* Store the echelon work diff to check it still matches the pool's
+     * echelon diff when submitting shares */
     work->sdiff = pool->swork.diff;
 
     /* Copy parameters required for share submission */
@@ -4528,7 +4588,7 @@ static void gen_stratum_work(struct pool* pool, struct work* work)
 
     local_work++;
     work->pool = pool;
-    work->stratum = true;
+    work->echelon = true;
     memcpy(work->start_nonce, pool->swork.start_nonce, 16);
     work->id = total_work++;
     work->nBits = pool->swork.nBits;
@@ -5384,7 +5444,7 @@ static bool input_pool(bool live)
     if (!pass)
         goto out;
 
-    if (!detect_stratum(pool, url) && strncmp(url, "http://", 7) && strncmp(url, "https://", 8))
+    if (!detect_echelon(pool, url) && strncmp(url, "http://", 7) && strncmp(url, "https://", 8))
     {
         char* httpinput;
         httpinput = malloc(256);
@@ -6250,13 +6310,13 @@ begin_bench:
 
         /* If the primary pool is a getwork pool and cannot roll work,
          * try to stage one extra work per mining thread */
-        if (!cp->has_stratum && !staged_rollable)
+        if (!cp->has_echelon && !staged_rollable)
             max_staged += mining_threads;
 
         mutex_lock(stgd_lock);
         ts = __total_staged();
 
-        if (!cp->has_stratum && !ts && !opt_fail_only)
+        if (!cp->has_echelon && !ts && !opt_fail_only)
             lagging = true;
 
         /* Wait until hash_pop tells us we need to create more work */
@@ -6280,9 +6340,9 @@ begin_bench:
         }
         pool = select_pool(lagging);
     retry:
-        if (pool->has_stratum)
+        if (pool->has_echelon)
         {
-            while (!pool->stratum_active || !pool->stratum_notify)
+            while (!pool->echelon_active || !pool->echelon_notify)
             {
                 struct pool* altpool = select_pool(true);
 
@@ -6293,8 +6353,8 @@ begin_bench:
                     goto retry;
                 }
             }
-            gen_stratum_work(pool, work);
-            applog(LOG_DEBUG, "Generated stratum work");
+            gen_echelon_work(pool, work);
+            applog(LOG_DEBUG, "Generated echelon work");
             stage_work(work);
             continue;
         }
