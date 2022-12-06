@@ -794,13 +794,23 @@ static cl_int queue_banana_kernel(_clState *clState, struct work *work, cl_uint 
 
 	cl_uint vwidth = 1 ;//clState->vwidth;
 
-    cl_mem nonces_mem = clCreateBuffer(clState->context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, 16, work->nonce, &status);
+    status = clEnqueueWriteBuffer(clState->commandQueue, clState->nonceBuffer, CL_TRUE, 0, 16, work->nonce, 0, NULL, NULL);
+    if (unlikely(status != CL_SUCCESS))
+    {
+        applog(LOG_ERR, "Error: clEnqueueWriteBuffer failed.");
+        return -1;
+    }
     // nonces
-	CL_SET_CLMEM_ARG(nonces_mem);
+	CL_SET_CLMEM_ARG(clState->nonceBuffer);
 
-    cl_mem target_mem = clCreateBuffer(clState->context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, 32, work->target, &status);
+    status = clEnqueueWriteBuffer(clState->commandQueue, clState->targetBuffer, CL_TRUE, 0, 32, work->target, 0, NULL, NULL);
+    if (unlikely(status != CL_SUCCESS))
+    {
+        applog(LOG_ERR, "Error: clEnqueueWriteBuffer failed.");
+        return -1;
+    }
     // target
-	CL_SET_CLMEM_ARG(target_mem);
+	CL_SET_CLMEM_ARG(clState->targetBuffer);
 
     cl_uchar hash_input[49];
     for (unsigned int i = 0; i < 32; ++i)
@@ -810,9 +820,14 @@ static cl_int queue_banana_kernel(_clState *clState, struct work *work, cl_uint 
     hash_input[32] = 16;
     memcpy(&hash_input[33], work->nonce, 16);
 
-    cl_mem hash_input_mem = clCreateBuffer(clState->context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, 49, hash_input, &status);
+    status = clEnqueueWriteBuffer(clState->commandQueue, clState->hashInputBuffer, CL_TRUE, 0, 46, hash_input, 0, NULL, NULL);
+    if (unlikely(status != CL_SUCCESS))
+    {
+        applog(LOG_ERR, "Error: clEnqueueWriteBuffer failed.");
+        return -1;
+    }
     // commitment
-    CL_SET_CLMEM_ARG(hash_input_mem);
+    CL_SET_CLMEM_ARG(clState->hashInputBuffer);
 
     CL_SET_UINT_ARG(vwidth);
 

@@ -696,6 +696,27 @@ built:
 		return NULL;
 	}
 
+    clState->nonceBuffer = clCreateBuffer(clState->context, CL_MEM_READ_ONLY, 16, NULL, &status);
+    if (status != CL_SUCCESS)
+    {
+		applog(LOG_ERR, "Error %d: clCreateBuffer (nonceBuffer)", status);
+		return NULL;
+	}
+
+    clState->targetBuffer = clCreateBuffer(clState->context, CL_MEM_READ_ONLY, 32, NULL, &status);
+    if (status != CL_SUCCESS)
+    {
+		applog(LOG_ERR, "Error %d: clCreateBuffer (targetBuffer)", status);
+		return NULL;
+	}
+
+    clState->hashInputBuffer = clCreateBuffer(clState->context, CL_MEM_READ_ONLY, 49, NULL, &status);
+    if (status != CL_SUCCESS)
+    {
+		applog(LOG_ERR, "Error %d: clCreateBuffer (hashInputBuffer)", status);
+		return NULL;
+	}
+
 	clState->outputBuffer = clCreateBuffer(clState->context, CL_MEM_WRITE_ONLY, BUFFERSIZE, NULL, &status);
 	if (status != CL_SUCCESS)
     {
