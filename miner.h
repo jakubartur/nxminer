@@ -413,6 +413,7 @@ struct cgpu_info
     enum alive status;
     char init[40];
     struct timeval last_message_tv;
+    bool nvidia;
 
     int threads;
     struct thr_info** thr;

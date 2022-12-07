@@ -240,6 +240,8 @@ _clState *initCl(unsigned int gpu, char *name, size_t nameSize)
 		applog(LOG_ERR, "Error %d: Getting Platform Info. (clGetPlatformInfo)", status);
 		return NULL;
 	}
+	bool isNvidia = strstr( pbuff, "NVIDIA" );
+	cgpu->nvidia = isNvidia;
 	platform = platforms[opt_platform_id];
 
 	if (platform == NULL) {
@@ -512,8 +514,14 @@ build:
 	/* create a cl program executable for all the devices specified */
 	char *CompilerOptions = calloc(1, 256);
 
+	if(cgpu->nvidia) {
+		sprintf(CompilerOptions, "-DNVIDIA -cl-nv-cstd=CL2.0 -nv-m64 -D WORKSIZE=%d -D VECTORS%d -D WORKVEC=%d",
+		(int)clState->wsize, clState->vwidth, (int)clState->wsize * clState->vwidth);
+	} else {
 	sprintf(CompilerOptions, "-cl-std=CL2.0 -D WORKSIZE=%d -D VECTORS%d -D WORKVEC=%d",
 		(int)clState->wsize, clState->vwidth, (int)clState->wsize * clState->vwidth);
+	}
+
 	applog(LOG_DEBUG, "Setting worksize to %lu", clState->wsize);
 	if (clState->vwidth > 1)
 		applog(LOG_DEBUG, "Patched source to suit %d vectors", clState->vwidth);

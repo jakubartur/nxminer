@@ -1,3 +1,4 @@
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 typedef char z_char;
 typedef uchar z_uchar;
 typedef int z_int;
