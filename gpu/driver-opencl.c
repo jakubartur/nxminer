@@ -57,6 +57,24 @@ extern void decay_time(double *f, double fadd);
 
 /**********************************************/
 
+
+#ifdef _WIN32
+#include <windows.h>
+
+static inline void port_sleep( size_t msec )
+{
+    Sleep( (DWORD)msec );
+}
+#else
+#include <unistd.h>
+
+static inline void port_sleep( size_t msec )
+{
+  usleep( msec * 1000 );
+}
+#endif
+
+
 #ifdef HAVE_OPENCL
 struct device_drv opencl_drv;
 #endif
@@ -1183,6 +1201,7 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 	const int dynamic_us = opt_dynamic_interval * 1000;
 
 	cl_int status;
+	cl_event eventFinished;
 	size_t globalThreads[1];
 	size_t localThreads[1] = { clState->wsize };
 	int64_t hashes = 0;
@@ -1225,7 +1244,7 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 		return -1;
 	}
 
-	status = clEnqueueNDRangeKernel(clState->commandQueue, *kernel, 1, NULL, globalThreads, localThreads, 0,  NULL, NULL);
+	status = clEnqueueNDRangeKernel(clState->commandQueue, *kernel, 1, NULL, globalThreads, localThreads, 0,  NULL, &eventFinished);
 
 	if (unlikely(status != CL_SUCCESS))
     {
@@ -1239,6 +1258,32 @@ static uint64_t opencl_scanhash(struct thr_info *thr, struct work *work)
 		applog(LOG_ERR, "Error: clEnqueueReadBuffer failed error %d. (clEnqueueReadBuffer)", status);
 		return -1;
 	}
+
+	if (gpu->nvidia)
+	{
+		clFlush(clState->commandQueue);
+		cl_int status;
+		do
+        {
+            clGetEventInfo(eventFinished, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &status, NULL);
+            if (status > CL_COMPLETE)
+            {
+                port_sleep(1);
+            }
+        }
+        while (status > CL_COMPLETE) ;
+        clReleaseEvent(eventFinished);
+        eventFinished = NULL;
+
+	}
+    else
+    {
+        clWaitForEvents(1, &eventFinished);
+        clReleaseEvent(eventFinished);
+    }
+
+
+
 	/* The amount of work scanned can fluctuate when intensity changes
 	 * and since we do this one cycle behind, we increment the work more
 	 * than enough to prevent repeating work */
