@@ -6,8 +6,6 @@ typedef uint z_uint;
 typedef long z_long;
 typedef ulong z_ulong;
 
-#define volatile
-#define amd_init(a,b,c) 0
 #define mad_opt( r, a, b ) r += (ulong)a * (uint)b
 #define madi_opt( r, a, b ) r += (long)a * (int)b
 
@@ -8751,7 +8749,6 @@ static inline void field_element_normalize_weak(uint *r)
     uint t9, t1, t0, t2, t3, t4, t5, t6, t7;                    \
     const uint M = 0x3FFFFFFUL, R0 = 0x3D10UL, R1 = 0x400UL;    \
                                                                     \
-    volatile uint carry = amd_init(a[0], a[0], a[0]);           \
     d = 0;                                                          \
     c = 0;                                                          \
     mad_opt( d, (a[0]), (b[9]) );                                   \
@@ -9137,10 +9134,6 @@ static inline void group_element_jacobean_add_group_element_var(gej *r, gej *a, 
         group_element_jacobean_set_group_element(r, b);
         return;
     }
-    if (b->infinity)
-    {
-        return;
-    }
     r->infinity = 0;
     field_element_sqr(z12, a->z);
     field_element_cmov(u1, a->x);
@@ -9420,7 +9413,6 @@ static inline void modinv32_update_fg_30(modinv32_signed30X *f, modinv32_signed3
 {
     const int M30 = (int)(UINT_MAX >> 2);
     const int u = t->u, v = t->v, q = t->q, r = t->r;
-	volatile int carry = amd_init( u, u, u );\
     int fi, gi;
     long cf = 0, cg = 0;
     int i;
@@ -9455,7 +9447,6 @@ static inline void modinv32_update_de_30(modinv32_signed30X *d, modinv32_signed3
 {
     const int M30 = (int)(UINT_MAX >> 2);
     const int u = t->u, v = t->v, q = t->q, r = t->r;
-	volatile int carry = amd_init( u, u, u );\
     int di, ei, md, me, sd, se;
     long cd = 0, ce = 0;
     int i;
@@ -9547,16 +9538,311 @@ static inline void field_element_inv( uint *r, uint *a )
 #define sigma0(x) (((x) >> 7 | (x) << 25) ^ ((x) >> 18 | (x) << 14) ^ ((x) >> 3))
 #define sigma1(x) (((x) >> 17 | (x) << 15) ^ ((x) >> 19 | (x) << 13) ^ ((x) >> 10))
 
-#define Round(a,b,c,d,e,f,g,h,k,w) { \
-    uint t1 = (h) + Sigma1(e) + Ch((e), (f), (g)) + (k) + (w); \
-    uint t2 = Sigma0(a) + Maj((a), (b), (c)); \
-    (d) += t1; \
-    (h) = t1 + t2; \
+#define Round(a,b,c,d,e,f,g,h,k,w) {            \
+    uint t1 = (h) + Sigma1(e);                  \
+    t1 += Ch((e), (f), (g));                    \
+    t1 += (k);                                  \
+    t1 += (w);                                  \
+    uint t2 = Sigma0(a) + Maj((a), (b), (c));   \
+    (d) += t1;                                  \
+    (h) = t1 + t2;                              \
 }
 
 #define BE32(p) ((((p) & 0xFF) << 24) | (((p) & 0xFF00) << 8) | (((p) & 0xFF0000) >> 8) | (((p) & 0xFF000000) >> 24))
 
-static void sha256_write(sha256X *hash, uchar *data, size_t len)
+#define w0_next         \
+w0 += sigma1(w14);      \
+w0 += w9;               \
+w0 += sigma0(w1);
+
+#define w1_next         \
+w1 += sigma1(w15);      \
+w1 += w10;              \
+w1 += sigma0(w2);
+
+#define w2_next         \
+w2 += sigma1(w0);       \
+w2 += w11;              \
+w2 += sigma0(w3);
+
+#define w3_next         \
+w3 += sigma1(w1);       \
+w3 += w12;              \
+w3 += sigma0(w4);
+
+#define w4_next         \
+w4 += sigma1(w2);       \
+w4 += w13;              \
+w4 += sigma0(w5);
+
+#define w5_next         \
+w5 += sigma1(w3);       \
+w5 += w14;              \
+w5 += sigma0(w6);
+
+#define w6_next         \
+w6 += sigma1(w4);       \
+w6 += w15;              \
+w6 += sigma0(w7);
+
+#define w7_next         \
+w7 += sigma1(w5);       \
+w7 += w0;               \
+w7 += sigma0(w8);
+
+#define w8_next         \
+w8 += sigma1(w6);       \
+w8 += w1;               \
+w8 += sigma0(w9);
+
+#define w9_next         \
+w9 += sigma1(w7);       \
+w9 += w2;               \
+w9 += sigma0(w10);
+
+#define w10_next        \
+w10 += sigma1(w8);      \
+w10 += w3;              \
+w10 += sigma0(w11);
+
+#define w11_next        \
+w11 += sigma1(w9);      \
+w11 += w4;              \
+w11 += sigma0(w12);
+
+#define w12_next        \
+w12 += sigma1(w10);     \
+w12 += w5;              \
+w12 += sigma0(w13);
+
+#define w13_next        \
+w13 += sigma1(w11);     \
+w13 += w6;              \
+w13 += sigma0(w14);
+
+#define w14_next        \
+w14 += sigma1(w12);     \
+w14 += w7;              \
+w14 += sigma0(w15);
+
+#define w15_next        \
+w15 += sigma1(w13);     \
+w15 += w8;              \
+w15 += sigma0(w0);
+
+#define sha_write_inner                         \
+w0_next                                         \
+Round(a, b, c, d, e, f, g, h, 0xe49b69c1, w0);  \
+w1_next                                         \
+Round(h, a, b, c, d, e, f, g, 0xefbe4786, w1);  \
+w2_next                                         \
+Round(g, h, a, b, c, d, e, f, 0x0fc19dc6, w2);  \
+w3_next                                         \
+Round(f, g, h, a, b, c, d, e, 0x240ca1cc, w3);  \
+w4_next                                         \
+Round(e, f, g, h, a, b, c, d, 0x2de92c6f, w4);  \
+w5_next                                         \
+Round(d, e, f, g, h, a, b, c, 0x4a7484aa, w5);  \
+w6_next                                         \
+Round(c, d, e, f, g, h, a, b, 0x5cb0a9dc, w6);  \
+w7_next                                         \
+Round(b, c, d, e, f, g, h, a, 0x76f988da, w7);  \
+w8_next                                         \
+Round(a, b, c, d, e, f, g, h, 0x983e5152, w8);  \
+w9_next                                         \
+Round(h, a, b, c, d, e, f, g, 0xa831c66d, w9);  \
+w10_next                                        \
+Round(g, h, a, b, c, d, e, f, 0xb00327c8, w10); \
+w11_next                                        \
+Round(f, g, h, a, b, c, d, e, 0xbf597fc7, w11); \
+w12_next                                        \
+Round(e, f, g, h, a, b, c, d, 0xc6e00bf3, w12); \
+w13_next                                        \
+Round(d, e, f, g, h, a, b, c, 0xd5a79147, w13); \
+w14_next                                        \
+Round(c, d, e, f, g, h, a, b, 0x06ca6351, w14); \
+w15_next                                        \
+Round(b, c, d, e, f, g, h, a, 0x14292967, w15); \
+w0_next                                         \
+Round(a, b, c, d, e, f, g, h, 0x27b70a85, w0);  \
+w1_next                                         \
+Round(h, a, b, c, d, e, f, g, 0x2e1b2138, w1);  \
+w2_next                                         \
+Round(g, h, a, b, c, d, e, f, 0x4d2c6dfc, w2);  \
+w3_next                                         \
+Round(f, g, h, a, b, c, d, e, 0x53380d13, w3);  \
+w4_next                                         \
+Round(e, f, g, h, a, b, c, d, 0x650a7354, w4);  \
+w5_next                                         \
+Round(d, e, f, g, h, a, b, c, 0x766a0abb, w5);  \
+w6_next                                         \
+Round(c, d, e, f, g, h, a, b, 0x81c2c92e, w6);  \
+w7_next                                         \
+Round(b, c, d, e, f, g, h, a, 0x92722c85, w7);  \
+w8_next                                         \
+Round(a, b, c, d, e, f, g, h, 0xa2bfe8a1, w8);  \
+w9_next                                         \
+Round(h, a, b, c, d, e, f, g, 0xa81a664b, w9);  \
+w10_next                                        \
+Round(g, h, a, b, c, d, e, f, 0xc24b8b70, w10); \
+w11_next                                        \
+Round(f, g, h, a, b, c, d, e, 0xc76c51a3, w11); \
+w12_next                                        \
+Round(e, f, g, h, a, b, c, d, 0xd192e819, w12); \
+w13_next                                        \
+Round(d, e, f, g, h, a, b, c, 0xd6990624, w13); \
+w14_next                                        \
+Round(c, d, e, f, g, h, a, b, 0xf40e3585, w14); \
+w15_next                                        \
+Round(b, c, d, e, f, g, h, a, 0x106aa070, w15); \
+w0_next                                         \
+Round(a, b, c, d, e, f, g, h, 0x19a4c116, w0);  \
+w1_next                                         \
+Round(h, a, b, c, d, e, f, g, 0x1e376c08, w1);  \
+w2_next                                         \
+Round(g, h, a, b, c, d, e, f, 0x2748774c, w2);  \
+w3_next                                         \
+Round(f, g, h, a, b, c, d, e, 0x34b0bcb5, w3);  \
+w4_next                                         \
+Round(e, f, g, h, a, b, c, d, 0x391c0cb3, w4);  \
+w5_next                                         \
+Round(d, e, f, g, h, a, b, c, 0x4ed8aa4a, w5);  \
+w6_next                                         \
+Round(c, d, e, f, g, h, a, b, 0x5b9cca4f, w6);  \
+w7_next                                         \
+Round(b, c, d, e, f, g, h, a, 0x682e6ff3, w7);  \
+w8_next                                         \
+Round(a, b, c, d, e, f, g, h, 0x748f82ee, w8);  \
+w9_next                                         \
+Round(h, a, b, c, d, e, f, g, 0x78a5636f, w9);  \
+w10_next                                        \
+Round(g, h, a, b, c, d, e, f, 0x84c87814, w10); \
+w11_next                                        \
+Round(f, g, h, a, b, c, d, e, 0x8cc70208, w11); \
+w12_next                                        \
+Round(e, f, g, h, a, b, c, d, 0x90befffa, w12); \
+w13_next                                        \
+Round(d, e, f, g, h, a, b, c, 0xa4506ceb, w13); \
+w14_next                                        \
+Round(c, d, e, f, g, h, a, b, 0xbef9a3f7, w14); \
+w15_next                                        \
+Round(b, c, d, e, f, g, h, a, 0xc67178f2, w15); \
+s0 += a;                                        \
+s1 += b;                                        \
+s2 += c;                                        \
+s3 += d;                                        \
+s4 += e;                                        \
+s5 += f;                                        \
+s6 += g;                                        \
+s7 += h;
+
+#define sha_write_inner2                        \
+w0_next                                         \
+Round(a, b, c, d, e, f, g, h, 0xe49b69c1, w0);  \
+w1_next                                         \
+Round(h, a, b, c, d, e, f, g, 0xefbe4786, w1);  \
+w2_next                                         \
+Round(g, h, a, b, c, d, e, f, 0x0fc19dc6, w2);  \
+w3_next                                         \
+Round(f, g, h, a, b, c, d, e, 0x240ca1cc, w3);  \
+w4_next                                         \
+Round(e, f, g, h, a, b, c, d, 0x2de92c6f, w4);  \
+w5_next                                         \
+Round(d, e, f, g, h, a, b, c, 0x4a7484aa, w5);  \
+w6_next                                         \
+Round(c, d, e, f, g, h, a, b, 0x5cb0a9dc, w6);  \
+w7_next                                         \
+Round(b, c, d, e, f, g, h, a, 0x76f988da, w7);  \
+w8_next                                         \
+Round(a, b, c, d, e, f, g, h, 0x983e5152, w8);  \
+w9_next                                         \
+Round(h, a, b, c, d, e, f, g, 0xa831c66d, w9);  \
+w10_next                                        \
+Round(g, h, a, b, c, d, e, f, 0xb00327c8, w10); \
+w11_next                                        \
+Round(f, g, h, a, b, c, d, e, 0xbf597fc7, w11); \
+w12_next                                        \
+Round(e, f, g, h, a, b, c, d, 0xc6e00bf3, w12); \
+w13_next                                        \
+Round(d, e, f, g, h, a, b, c, 0xd5a79147, w13); \
+w14_next                                        \
+Round(c, d, e, f, g, h, a, b, 0x06ca6351, w14); \
+w15_next                                        \
+Round(b, c, d, e, f, g, h, a, 0x14292967, w15); \
+w0_next                                         \
+Round(a, b, c, d, e, f, g, h, 0x27b70a85, w0);  \
+w1_next                                         \
+Round(h, a, b, c, d, e, f, g, 0x2e1b2138, w1);  \
+w2_next                                         \
+Round(g, h, a, b, c, d, e, f, 0x4d2c6dfc, w2);  \
+w3_next                                         \
+Round(f, g, h, a, b, c, d, e, 0x53380d13, w3);  \
+w4_next                                         \
+Round(e, f, g, h, a, b, c, d, 0x650a7354, w4);  \
+w5_next                                         \
+Round(d, e, f, g, h, a, b, c, 0x766a0abb, w5);  \
+w6_next                                         \
+Round(c, d, e, f, g, h, a, b, 0x81c2c92e, w6);  \
+w7_next                                         \
+Round(b, c, d, e, f, g, h, a, 0x92722c85, w7);  \
+w8_next                                         \
+Round(a, b, c, d, e, f, g, h, 0xa2bfe8a1, w8);  \
+w9_next                                         \
+Round(h, a, b, c, d, e, f, g, 0xa81a664b, w9);  \
+w10_next                                        \
+Round(g, h, a, b, c, d, e, f, 0xc24b8b70, w10); \
+w11_next                                        \
+Round(f, g, h, a, b, c, d, e, 0xc76c51a3, w11); \
+w12_next                                        \
+Round(e, f, g, h, a, b, c, d, 0xd192e819, w12); \
+w13_next                                        \
+Round(d, e, f, g, h, a, b, c, 0xd6990624, w13); \
+w14_next                                        \
+Round(c, d, e, f, g, h, a, b, 0xf40e3585, w14); \
+w15_next                                        \
+Round(b, c, d, e, f, g, h, a, 0x106aa070, w15); \
+w0_next                                         \
+Round(a, b, c, d, e, f, g, h, 0x19a4c116, w0);  \
+w1_next                                         \
+Round(h, a, b, c, d, e, f, g, 0x1e376c08, w1);  \
+w2_next                                         \
+Round(g, h, a, b, c, d, e, f, 0x2748774c, w2);  \
+w3_next                                         \
+Round(f, g, h, a, b, c, d, e, 0x34b0bcb5, w3);  \
+w4_next                                         \
+Round(e, f, g, h, a, b, c, d, 0x391c0cb3, w4);  \
+w5_next                                         \
+Round(d, e, f, g, h, a, b, c, 0x4ed8aa4a, w5);  \
+w6_next                                         \
+Round(c, d, e, f, g, h, a, b, 0x5b9cca4f, w6);  \
+w7_next                                         \
+Round(b, c, d, e, f, g, h, a, 0x682e6ff3, w7);  \
+w8_next                                         \
+Round(a, b, c, d, e, f, g, h, 0x748f82ee, w8);  \
+w9_next                                         \
+Round(h, a, b, c, d, e, f, g, 0x78a5636f, w9);  \
+w10_next                                        \
+Round(g, h, a, b, c, d, e, f, 0x84c87814, w10); \
+w11_next                                        \
+Round(f, g, h, a, b, c, d, e, 0x8cc70208, w11); \
+w12_next                                        \
+Round(e, f, g, h, a, b, c, d, 0x90befffa, w12); \
+w13_next                                        \
+Round(d, e, f, g, h, a, b, c, 0xa4506ceb, w13); \
+w14_next                                        \
+Round(c, d, e, f, g, h, a, b, 0xbef9a3f7, w14); \
+w15_next                                        \
+Round(b, c, d, e, f, g, h, a, 0xc67178f2, w15); \
+hash->s[0] += a;                                \
+hash->s[1] += b;                                \
+hash->s[2] += c;                                \
+hash->s[3] += d;                                \
+hash->s[4] += e;                                \
+hash->s[5] += f;                                \
+hash->s[6] += g;                                \
+hash->s[7] += h;
+
+static inline void sha256_write(sha256X *hash, uchar *data, size_t len)
 {
     size_t bufsize = hash->bytes & 0x3F;
     hash->bytes += len;
@@ -9584,66 +9870,7 @@ static void sha256_write(sha256X *hash, uchar *data, size_t len)
         Round(d, e, f, g, h, a, b, c, 0x80deb1fe, w13 = BE32(hash->buf[13]));
         Round(c, d, e, f, g, h, a, b, 0x9bdc06a7, w14 = BE32(hash->buf[14]));
         Round(b, c, d, e, f, g, h, a, 0xc19bf174, w15 = BE32(hash->buf[15]));
-
-        Round(a, b, c, d, e, f, g, h, 0xe49b69c1, w0 += sigma1(w14) + w9 + sigma0(w1));
-        Round(h, a, b, c, d, e, f, g, 0xefbe4786, w1 += sigma1(w15) + w10 + sigma0(w2));
-        Round(g, h, a, b, c, d, e, f, 0x0fc19dc6, w2 += sigma1(w0) + w11 + sigma0(w3));
-        Round(f, g, h, a, b, c, d, e, 0x240ca1cc, w3 += sigma1(w1) + w12 + sigma0(w4));
-        Round(e, f, g, h, a, b, c, d, 0x2de92c6f, w4 += sigma1(w2) + w13 + sigma0(w5));
-        Round(d, e, f, g, h, a, b, c, 0x4a7484aa, w5 += sigma1(w3) + w14 + sigma0(w6));
-        Round(c, d, e, f, g, h, a, b, 0x5cb0a9dc, w6 += sigma1(w4) + w15 + sigma0(w7));
-        Round(b, c, d, e, f, g, h, a, 0x76f988da, w7 += sigma1(w5) + w0 + sigma0(w8));
-        Round(a, b, c, d, e, f, g, h, 0x983e5152, w8 += sigma1(w6) + w1 + sigma0(w9));
-        Round(h, a, b, c, d, e, f, g, 0xa831c66d, w9 += sigma1(w7) + w2 + sigma0(w10));
-        Round(g, h, a, b, c, d, e, f, 0xb00327c8, w10 += sigma1(w8) + w3 + sigma0(w11));
-        Round(f, g, h, a, b, c, d, e, 0xbf597fc7, w11 += sigma1(w9) + w4 + sigma0(w12));
-        Round(e, f, g, h, a, b, c, d, 0xc6e00bf3, w12 += sigma1(w10) + w5 + sigma0(w13));
-        Round(d, e, f, g, h, a, b, c, 0xd5a79147, w13 += sigma1(w11) + w6 + sigma0(w14));
-        Round(c, d, e, f, g, h, a, b, 0x06ca6351, w14 += sigma1(w12) + w7 + sigma0(w15));
-        Round(b, c, d, e, f, g, h, a, 0x14292967, w15 += sigma1(w13) + w8 + sigma0(w0));
-
-        Round(a, b, c, d, e, f, g, h, 0x27b70a85, w0 += sigma1(w14) + w9 + sigma0(w1));
-        Round(h, a, b, c, d, e, f, g, 0x2e1b2138, w1 += sigma1(w15) + w10 + sigma0(w2));
-        Round(g, h, a, b, c, d, e, f, 0x4d2c6dfc, w2 += sigma1(w0) + w11 + sigma0(w3));
-        Round(f, g, h, a, b, c, d, e, 0x53380d13, w3 += sigma1(w1) + w12 + sigma0(w4));
-        Round(e, f, g, h, a, b, c, d, 0x650a7354, w4 += sigma1(w2) + w13 + sigma0(w5));
-        Round(d, e, f, g, h, a, b, c, 0x766a0abb, w5 += sigma1(w3) + w14 + sigma0(w6));
-        Round(c, d, e, f, g, h, a, b, 0x81c2c92e, w6 += sigma1(w4) + w15 + sigma0(w7));
-        Round(b, c, d, e, f, g, h, a, 0x92722c85, w7 += sigma1(w5) + w0 + sigma0(w8));
-        Round(a, b, c, d, e, f, g, h, 0xa2bfe8a1, w8 += sigma1(w6) + w1 + sigma0(w9));
-        Round(h, a, b, c, d, e, f, g, 0xa81a664b, w9 += sigma1(w7) + w2 + sigma0(w10));
-        Round(g, h, a, b, c, d, e, f, 0xc24b8b70, w10 += sigma1(w8) + w3 + sigma0(w11));
-        Round(f, g, h, a, b, c, d, e, 0xc76c51a3, w11 += sigma1(w9) + w4 + sigma0(w12));
-        Round(e, f, g, h, a, b, c, d, 0xd192e819, w12 += sigma1(w10) + w5 + sigma0(w13));
-        Round(d, e, f, g, h, a, b, c, 0xd6990624, w13 += sigma1(w11) + w6 + sigma0(w14));
-        Round(c, d, e, f, g, h, a, b, 0xf40e3585, w14 += sigma1(w12) + w7 + sigma0(w15));
-        Round(b, c, d, e, f, g, h, a, 0x106aa070, w15 += sigma1(w13) + w8 + sigma0(w0));
-
-        Round(a, b, c, d, e, f, g, h, 0x19a4c116, w0 += sigma1(w14) + w9 + sigma0(w1));
-        Round(h, a, b, c, d, e, f, g, 0x1e376c08, w1 += sigma1(w15) + w10 + sigma0(w2));
-        Round(g, h, a, b, c, d, e, f, 0x2748774c, w2 += sigma1(w0) + w11 + sigma0(w3));
-        Round(f, g, h, a, b, c, d, e, 0x34b0bcb5, w3 += sigma1(w1) + w12 + sigma0(w4));
-        Round(e, f, g, h, a, b, c, d, 0x391c0cb3, w4 += sigma1(w2) + w13 + sigma0(w5));
-        Round(d, e, f, g, h, a, b, c, 0x4ed8aa4a, w5 += sigma1(w3) + w14 + sigma0(w6));
-        Round(c, d, e, f, g, h, a, b, 0x5b9cca4f, w6 += sigma1(w4) + w15 + sigma0(w7));
-        Round(b, c, d, e, f, g, h, a, 0x682e6ff3, w7 += sigma1(w5) + w0 + sigma0(w8));
-        Round(a, b, c, d, e, f, g, h, 0x748f82ee, w8 += sigma1(w6) + w1 + sigma0(w9));
-        Round(h, a, b, c, d, e, f, g, 0x78a5636f, w9 += sigma1(w7) + w2 + sigma0(w10));
-        Round(g, h, a, b, c, d, e, f, 0x84c87814, w10 += sigma1(w8) + w3 + sigma0(w11));
-        Round(f, g, h, a, b, c, d, e, 0x8cc70208, w11 += sigma1(w9) + w4 + sigma0(w12));
-        Round(e, f, g, h, a, b, c, d, 0x90befffa, w12 += sigma1(w10) + w5 + sigma0(w13));
-        Round(d, e, f, g, h, a, b, c, 0xa4506ceb, w13 += sigma1(w11) + w6 + sigma0(w14));
-        Round(c, d, e, f, g, h, a, b, 0xbef9a3f7, w14 + sigma1(w12) + w7 + sigma0(w15));
-        Round(b, c, d, e, f, g, h, a, 0xc67178f2, w15 + sigma1(w13) + w8 + sigma0(w0));
-
-        hash->s[0] += a;
-        hash->s[1] += b;
-        hash->s[2] += c;
-        hash->s[3] += d;
-        hash->s[4] += e;
-        hash->s[5] += f;
-        hash->s[6] += g;
-        hash->s[7] += h;
+        sha_write_inner2
         bufsize = 0;
     }
     if (len)
@@ -9652,7 +9879,7 @@ static void sha256_write(sha256X *hash, uchar *data, size_t len)
     }
 }
 
-void sha256_finalize(sha256X *hash, uchar *out32)
+static inline void sha256_finalize(sha256X *hash, uchar *out32)
 {
     uchar pad[64] = {0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     uint sizedesc[2] = {BE32(hash->bytes >> 29), BE32(hash->bytes << 3)};
@@ -9672,21 +9899,78 @@ __constant uint sha_initial[8] = {0x6a09e667U, 0xbb67ae85U,
                                   0x510e527fU, 0x9b05688cU,
                                   0x1f83d9abU, 0x5be0cd19U};
 
-void sha256(uchar *message, uint len, uchar *digest)
+static inline void sha256(uchar *message, uint len, uchar *digest)
 {
     sha256X sha;
-    for (int i = 0; i < 8; ++i)
-    {
-        sha.s[i] = sha_initial[i];
-    }
+    sha.s[0] = sha_initial[0];
+    sha.s[1] = sha_initial[1];
+    sha.s[2] = sha_initial[2];
+    sha.s[3] = sha_initial[3];
+    sha.s[4] = sha_initial[4];
+    sha.s[5] = sha_initial[5];
+    sha.s[6] = sha_initial[6];
+    sha.s[7] = sha_initial[7];
     sha.bytes = 0;
     sha256_write(&sha, message, len);
     sha256_finalize(&sha, digest);
 }
 
+#define sha256_32(message, digest)                                          \
+{                                                                           \
+    uint s0 = 0x6a09e667U;                                                  \
+    uint s1 = 0xbb67ae85U;                                                  \
+    uint s2 = 0x3c6ef372U;                                                  \
+    uint s3 = 0xa54ff53aU;                                                  \
+    uint s4 = 0x510e527fU;                                                  \
+    uint s5 = 0x9b05688cU;                                                  \
+    uint s6 = 0x1f83d9abU;                                                  \
+    uint s7 = 0x5be0cd19U;                                                  \
+    uint a = s0, b = s1, c = s2, d = s3, e = s4, f = s5, g = s6, h = s7;    \
+    uint w0 = BE32(message[0]);                                             \
+    uint w1 = BE32(message[1]);                                             \
+    uint w2 = BE32(message[2]);                                             \
+    uint w3 = BE32(message[3]);                                             \
+    uint w4 = BE32(message[4]);                                             \
+    uint w5 = BE32(message[5]);                                             \
+    uint w6 = BE32(message[6]);                                             \
+    uint w7 = BE32(message[7]);                                             \
+    uint w8 = 0x80000000;                                                   \
+    uint w9 = 0;                                                            \
+    uint w10 = 0;                                                           \
+    uint w11 = 0;                                                           \
+    uint w12 = 0;                                                           \
+    uint w13 = 0;                                                           \
+    uint w14 = 0;                                                           \
+    uint w15 = 256;                                                         \
+    Round(a, b, c, d, e, f, g, h, 0x428a2f98, w0);                          \
+    Round(h, a, b, c, d, e, f, g, 0x71374491, w1);                          \
+    Round(g, h, a, b, c, d, e, f, 0xb5c0fbcf, w2);                          \
+    Round(f, g, h, a, b, c, d, e, 0xe9b5dba5, w3);                          \
+    Round(e, f, g, h, a, b, c, d, 0x3956c25b, w4);                          \
+    Round(d, e, f, g, h, a, b, c, 0x59f111f1, w5);                          \
+    Round(c, d, e, f, g, h, a, b, 0x923f82a4, w6);                          \
+    Round(b, c, d, e, f, g, h, a, 0xab1c5ed5, w7);                          \
+    Round(a, b, c, d, e, f, g, h, 0xd807aa98, w8);                          \
+    Round(h, a, b, c, d, e, f, g, 0x12835b01, w9);                          \
+    Round(g, h, a, b, c, d, e, f, 0x243185be, w10);                         \
+    Round(f, g, h, a, b, c, d, e, 0x550c7dc3, w11);                         \
+    Round(e, f, g, h, a, b, c, d, 0x72be5d74, w12);                         \
+    Round(d, e, f, g, h, a, b, c, 0x80deb1fe, w13);                         \
+    Round(c, d, e, f, g, h, a, b, 0x9bdc06a7, w14);                         \
+    Round(b, c, d, e, f, g, h, a, 0xc19bf174, w15);                         \
+    sha_write_inner                                                         \
+    digest[0] = BE32(s0);                                                   \
+    digest[1] = BE32(s1);                                                   \
+    digest[2] = BE32(s2);                                                   \
+    digest[3] = BE32(s3);                                                   \
+    digest[4] = BE32(s4);                                                   \
+    digest[5] = BE32(s5);                                                   \
+    digest[6] = BE32(s6);                                                   \
+    digest[7] = BE32(s7);                                                   \
+}
+
 static void hmac_sha256_initialize(hmac_sha256X *hash, uchar *key)
 {
-    size_t n;
     uint rkey[16] = {0};
     for (int i = 0; i < 8; i++)
     {
@@ -10201,7 +10485,7 @@ static inline void scalar_get_b32(uchar *bin,  uint* a)
     bin[28] = a[0] >> 24; bin[29] = a[0] >> 16; bin[30] = a[0] >> 8; bin[31] = a[0];
 }
 
-uchar memcmp(uint* a, __constant const uint* b, size_t len)
+uchar memcmp(uint* a, __constant const uint* b, int len)
 {
     for (int i = 0; i < len; ++i)
     {
@@ -10277,37 +10561,33 @@ void search(
         message[33 + i] = new_nonce.x[i];
     }
 
-    uchar sub1[32];
-    uchar miningHash[32];
-    sha256(message, 49, sub1);
-    sha256(sub1, 32, miningHash);
+    uint sub1[8];
+    uint miningHash[8];
+    sha256(message, 49, (uchar*)sub1);
+    sha256_32(sub1, miningHash);
 
     uint mining_hash_scalar[8];
-    int overflow = scalar_set_b32(mining_hash_scalar, miningHash);
+    int overflow = scalar_set_b32(mining_hash_scalar, (uchar*)miningHash);
     if (overflow | scalar_is_zero(mining_hash_scalar))
     {
         return;
     }
 
-    uchar signHash[32];
-    sha256(miningHash, 32, signHash);
+    uint signHash[32];
+    sha256_32(miningHash, signHash);
 
     // sign the key with the signHash
     gej pubkey_jacobean = initial;
     get_jacobean_pubkey(&pubkey_jacobean, mining_hash_scalar);
-    ge pubkey;
     uint pubkey_z2[10], pubkey_z3[10];
-    pubkey.infinity = pubkey_jacobean.infinity;
     field_element_inv(pubkey_jacobean.z, pubkey_jacobean.z);
     field_element_sqr(pubkey_z2, pubkey_jacobean.z);
     field_element_mul(pubkey_z3, pubkey_jacobean.z, pubkey_z2);
     field_element_mul(pubkey_jacobean.x, pubkey_jacobean.x, pubkey_z2);
     field_element_mul(pubkey_jacobean.y, pubkey_jacobean.y, pubkey_z3);
-    field_element_cmov(pubkey.x, pubkey_jacobean.x);
-    field_element_cmov(pubkey.y, pubkey_jacobean.y);
 
     // no sigs from infinity pubkeys
-    if (pubkey.infinity)
+    if (pubkey_jacobean.infinity)
     {
         return;
     }
@@ -10316,8 +10596,8 @@ void search(
     uchar nonce32[32];
     uchar keydata[112];
     rfc6979_hmac_sha256X rng;
-    memcpy32((uint*)keydata, (uint*)miningHash, 8);
-    memcpy32((uint*)(keydata +32), (uint*)signHash, 8);
+    memcpy32((uint*)keydata, miningHash, 8);
+    memcpy32((uint*)(keydata +32), signHash, 8);
     uchar algo16[17] = "Schnorr+SHA256  ";
     memcpy32((uint*)(keydata + 64), (uint*)algo16, 4);
     rfc6979_hmac_sha256_initialize(&rng, keydata);
@@ -10330,18 +10610,14 @@ void search(
 
     gej R_jacobean = initial;
     get_jacobean_pubkey(&R_jacobean, k);
-    ge R_normal;
     uint R_z2[10], R_z3[10];
-    R_normal.infinity = R_jacobean.infinity;
     field_element_inv(R_jacobean.z, R_jacobean.z);
     field_element_sqr(R_z2, R_jacobean.z);
     field_element_mul(R_z3, R_jacobean.z, R_z2);
     field_element_mul(R_jacobean.x, R_jacobean.x, R_z2);
     field_element_mul(R_jacobean.y, R_jacobean.y, R_z3);
-    field_element_cmov(R_normal.x, R_jacobean.x);
-    field_element_cmov(R_normal.y, R_jacobean.y);
 
-    if (!field_element_is_quad_var(R_normal.y))
+    if (!field_element_is_quad_var(R_jacobean.y))
     {
         uint nonzero = 0xFFFFFFFFU * (scalar_is_zero(k) == 0);
         ulong t = (ulong)(~k[0]) + N_0 + 1;
@@ -10362,9 +10638,9 @@ void search(
         k[7] = t & nonzero;
     }
 
-    field_element_normalize(R_normal.x);
+    field_element_normalize(R_jacobean.x);
     uchar schnorrSig[64];
-    field_element_get_b32(schnorrSig, R_normal.x);
+    field_element_get_b32(schnorrSig, R_jacobean.x);
 
     uchar buf[33];
     sha256X sha;
@@ -10374,12 +10650,12 @@ void search(
     }
     sha.bytes = 0;
     sha256_write(&sha, schnorrSig, 32);
-    field_element_normalize_var(pubkey.x);
-    field_element_normalize_var(pubkey.y);
-    field_element_get_b32(&buf[1], pubkey.x);
-    buf[0] = (pubkey.y[0] & 1) ? TAG_PUBKEY_ODDX : TAG_PUBKEY_EVENX;
+    field_element_normalize_var(pubkey_jacobean.x);
+    field_element_normalize_var(pubkey_jacobean.y);
+    field_element_get_b32(&buf[1], pubkey_jacobean.x);
+    buf[0] = (pubkey_jacobean.y[0] & 1) ? TAG_PUBKEY_ODDX : TAG_PUBKEY_EVENX;
     sha256_write(&sha, buf, 33);
-    sha256_write(&sha, signHash, 32);
+    sha256_write(&sha, (uchar*)signHash, 32);
     sha256_finalize(&sha, buf);
 
     uint e[8], s[8];
