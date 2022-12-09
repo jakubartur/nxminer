@@ -418,8 +418,6 @@ struct cgpu_info
     int threads;
     struct thr_info** thr;
 
-    uint64_t max_hashes;
-
     const char* kname;
 #ifdef HAVE_OPENCL
     bool mapped;

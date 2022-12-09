@@ -6,3 +6,4 @@ src/.libs/libjansson.la
 src/libjansson.la
 src/*.lo
 src/jansson_config.h
+ltmain.sh
