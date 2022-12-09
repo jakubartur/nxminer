@@ -21,6 +21,7 @@ static const uint8_t UINT256_1000000[32] =  {0x40,0x42,0x0f,0,0,0,0,0,0,0,0,0,0,
 // arith uint256(100000000)
 static const uint8_t UINT256_100000000[32] =  {0x00,0xe1,0xf5,0x05,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
+void uint128_to_string(const uint8_t* a, char** str);
 void uint128_print_string(const uint8_t* a);
 
 void uint256_to_string(const uint8_t* a, char** str);

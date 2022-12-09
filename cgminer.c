@@ -2347,8 +2347,6 @@ static void push_curl_entry(struct curl_ent* ce, struct pool* pool)
     mutex_unlock(&pool->pool_lock);
 }
 
-static bool stale_work(struct work* work, bool share);
-
 /* Duplicates any dynamically allocated arrays within the work struct to
  * prevent a copied work struct from freeing ram belonging to another struct */
 void __copy_work(struct work* work, struct work* base_work)
@@ -2407,8 +2405,6 @@ static struct work* make_clone(struct work* work)
     return work_clone;
 }
 
-static void stage_work(struct work* work);
-
 static void pool_died(struct pool* pool)
 {
     if (!pool_tset(pool, &pool->idle))
@@ -2432,7 +2428,9 @@ static bool stale_work(struct work* work, bool share)
     int getwork_delay;
 
     if (opt_benchmark)
+    {
         return false;
+    }
 
     if (work->work_block != work_block)
     {
@@ -2444,10 +2442,13 @@ static bool stale_work(struct work* work, bool share)
      * advertise a broken expire= that is lower than a meaningful
      * scantime */
     if (work->rolltime > opt_scantime)
+    {
         work_expiry = work->rolltime;
+    }
     else
+    {
         work_expiry = opt_expiry;
-
+    }
     pool = work->pool;
 
     /* Factor in the average getwork delay of this pool, rounding it up to
@@ -2455,7 +2456,9 @@ static bool stale_work(struct work* work, bool share)
     getwork_delay = pool->cgminer_pool_stats.getwork_wait_rolling * 5 + 1;
     work_expiry -= getwork_delay;
     if (unlikely(work_expiry < 5))
+    {
         work_expiry = 5;
+    }
 
     gettimeofday(&now, NULL);
     if ((now.tv_sec - work->tv_staged.tv_sec) >= work_expiry)
@@ -2486,7 +2489,9 @@ static bool stale_work(struct work* work, bool share)
         same_job = true;
         cg_rlock(&pool->data_lock);
         if (strcmp(work->job_id, pool->swork.job_id))
+        {
             same_job = false;
+        }
         cg_runlock(&pool->data_lock);
         if (!same_job)
         {
@@ -2500,7 +2505,9 @@ static bool stale_work(struct work* work, bool share)
     getwork_delay = pool->cgminer_pool_stats.getwork_wait_rolling * 5 + 1;
     work_expiry -= getwork_delay;
     if (unlikely(work_expiry < 5))
+    {
         work_expiry = 5;
+    }
 
     gettimeofday(&now, NULL);
     if ((now.tv_sec - work->tv_staged.tv_sec) >= work_expiry)
@@ -4215,7 +4222,9 @@ static void* stratum_thread(void* userdata)
         char* s;
 
         if (unlikely(pool->removed))
+        {
             break;
+        }
 
         /* Check to see whether we need to maintain this connection
          * indefinitely or just bring it up when we switch to this
@@ -4233,7 +4242,9 @@ static void* stratum_thread(void* userdata)
                 while (!restart_stratum(pool))
                 {
                     if (pool->removed)
+                    {
                         goto out;
+                    }
                     nmsleep(30000);
                 }
             }
@@ -4289,7 +4300,9 @@ static void* stratum_thread(void* userdata)
         stratum_resumed(pool);
 
         if (!parse_method(pool, s) && !parse_stratum_response(pool, s))
+        {
             applog(LOG_INFO, "Unknown stratum msg: %s", s);
+        }
         free(s);
         if (pool->swork.clean)
         {
@@ -4310,7 +4323,9 @@ static void* stratum_thread(void* userdata)
                 }
             }
             else
+            {
                 applog(LOG_NOTICE, "Stratum from pool %d detected new block", pool->pool_no);
+            }
             free_work(work);
         }
     }
@@ -4540,15 +4555,6 @@ void submit_nonce(struct thr_info* thr, struct work* work, uint8_t nonce[16])
     submit_work_async(work_copy, &tv_work_found);
 }
 
-static inline bool abandon_work(struct work* work, struct timeval* wdiff, uint64_t hashes)
-{
-    if (wdiff->tv_sec > opt_scantime || hashes >= 0xfffffffe || stale_work(work, false))
-    {
-        return true;
-    }
-    return false;
-}
-
 static void mt_disable(struct thr_info* mythr, const int thr_id, struct device_drv* drv)
 {
     applog(LOG_WARNING, "Thread %d being disabled", thr_id);
@@ -4599,9 +4605,10 @@ static void hash_sole_work(struct thr_info* mythr)
             // we have not started mining on the device nonce range, pull nonce from work start nonce
             memcpy(work->nonce, work->start_nonce, 16);
             /*
-            printf("pool provided start nonce: ");
-            uint128_print_string(work->nonce);
-            printf("\n");
+            char* str_nonce = NULL;
+            uint128_to_string(work->nonce, &str_nonce);
+            applog(LOG_DEBUG, "pool provided start nonce: %s \n", str_nonce);
+            free(str_nonce);
             */
             // work nonce is little endian
             const uint64_t THREAD_NONCE_RANGE_SIZE = POOL137_NONCE_RANGE / total_devices;
@@ -4619,9 +4626,9 @@ static void hash_sole_work(struct thr_info* mythr)
         else
         {
             // we have already started mining on the device nonce range
+            applog(LOG_DEBUG, "continuing from last worked on nonce\n");
             memcpy(work->nonce, mythr->thread_nonce, 16);
         }
-        cgpu->max_hashes = 0;
         if (!drv->prepare_work(mythr, work))
         {
             applog(LOG_ERR,
@@ -4632,7 +4639,7 @@ static void hash_sole_work(struct thr_info* mythr)
         }
         work->device_diff = MIN(drv->max_diff, work->work_difficulty);
 
-        do
+        while(true)
         {
             gettimeofday(&tv_start, NULL);
 
@@ -4682,10 +4689,6 @@ static void hash_sole_work(struct thr_info* mythr)
                 mt_disable(mythr, thr_id, drv);
             }
             hashes_done += hashes;
-            if (hashes > cgpu->max_hashes)
-            {
-                cgpu->max_hashes = hashes;
-            }
             gettimeofday(&tv_end, NULL);
             timersub(&tv_end, &tv_start, &diff);
             sdiff.tv_sec += diff.tv_sec;
@@ -4725,7 +4728,11 @@ static void hash_sole_work(struct thr_info* mythr)
                 mt_disable(mythr, thr_id, drv);
             }
             sdiff.tv_sec = sdiff.tv_usec = 0;
-        } while (!abandon_work(work, &wdiff, cgpu->max_hashes));
+            if (wdiff.tv_sec > opt_scantime || stale_work(work, false))
+            {
+                break;
+            }
+        }
         free_work(work);
     }
 }
