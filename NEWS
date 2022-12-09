@@ -1,3 +1,8 @@
+Version 2.0.2 - December 9, 2022
+- Fixed high LA issue with nvidia cards
+- fixed a nonce rolling bug that caused a lot of duplicate shares/rejects
+- minor speed improvements
+
 Version 2.0.1 - December 6, 2022
 - Fixed a memory leak issue in the GPU mining code
 - removal of some lingering CPU mining logic (CPU mining support removed in 2.0.0)
