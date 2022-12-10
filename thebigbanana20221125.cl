@@ -9891,7 +9891,7 @@ static inline void sha256_write(sha256X *hash, uchar *data, size_t len)
     }
 }
 
-static inline void sha256_finalize(sha256X *hash, uchar *out32)
+static inline void sha256_finalize(sha256X *hash, uint *out32)
 {
     uchar pad[64] = {0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     uint sizedesc[2] = {BE32(hash->bytes >> 29), BE32(hash->bytes << 3)};
@@ -9903,7 +9903,7 @@ static inline void sha256_finalize(sha256X *hash, uchar *out32)
         out[i] = BE32(hash->s[i]);
         hash->s[i] = 0;
     }
-    memcpy32((uint*)out32, out, 8);
+    memcpy32(out32, out, 8);
 }
 
 __constant uint sha_initial[8] = {0x6a09e667U, 0xbb67ae85U,
@@ -9924,7 +9924,7 @@ static inline void sha256(uchar *message, uint len, uchar *digest)
     sha.s[7] = sha_initial[7];
     sha.bytes = 0;
     sha256_write(&sha, message, len);
-    sha256_finalize(&sha, digest);
+    sha256_finalize(&sha, (uint*)digest);
 }
 
 #define sha256_32(message, digest)                                          \
@@ -9981,52 +9981,10 @@ static inline void sha256(uchar *message, uint len, uchar *digest)
     digest[7] = BE32(s7);                                                   \
 }
 
-static void hmac_sha256_initialize(hmac_sha256X *hash, uchar *key)
+static void rfc6979_hmac_sha256(uchar *key, uint* k)
 {
-    uint rkey[16] = {0};
-    for (int i = 0; i < 8; i++)
-    {
-        rkey[i] = ((uint*)key)[i];
-    }
-    // initialise
-    for (int i = 0; i < 8; ++i)
-    {
-        hash->outer.s[i] = sha_initial[i];
-    }
-    hash->outer.bytes = 0;
-    for (int i = 0; i < 16; i++)
-    {
-        rkey[i] ^= 0x5c5c5c5c;
-    }
-    sha256_write(&hash->outer, (uchar*)rkey, 64);
-    // initialise
-    for (int i = 0; i < 8; ++i)
-    {
-        hash->inner.s[i] = sha_initial[i];
-    }
-    hash->inner.bytes = 0;
-    for (int i = 0; i < 16; i++)
-    {
-        rkey[i] ^= 0x5c5c5c5c ^ 0x36363636;
-    }
-    sha256_write(&hash->inner, (uchar*)rkey, 64);
-}
-
-static void hmac_sha256_write(hmac_sha256X *hash,  uchar *data, size_t size)
-{
-    sha256_write(&hash->inner, data, size);
-}
-
-static void hmac_sha256_finalize(hmac_sha256X *hash, uchar *out32)
-{
-    uchar temp[32];
-    sha256_finalize(&hash->inner, temp);
-    sha256_write(&hash->outer, temp, 32);
-    sha256_finalize(&hash->outer, out32);
-}
-
-static void rfc6979_hmac_sha256_initialize(rfc6979_hmac_sha256X *rng,  uchar *key)
-{
+    uchar nonce32[32];
+    rfc6979_hmac_sha256X rng;
     hmac_sha256X hmac;
     uchar zero[1] = {0x00};
     uchar one[1] = {0x01};
@@ -10035,46 +9993,180 @@ static void rfc6979_hmac_sha256_initialize(rfc6979_hmac_sha256X *rng,  uchar *ke
     	rng->v[i] = 0x01010101; // RFC6979 3.2.b.
     	rng->k[i] = 0x00000000; // RFC6979 3.2.c.
     }
+    uint temp[8];
 
     // RFC6979 3.2.d.
-    hmac_sha256_initialize(&hmac, (uchar*)rng->k);
-    hmac_sha256_write(&hmac, (uchar*)rng->v, 32);
-    hmac_sha256_write(&hmac, zero, 1);
-    hmac_sha256_write(&hmac, key, 80);
-    hmac_sha256_finalize(&hmac, (uchar*)rng->k);
-    hmac_sha256_initialize(&hmac, (uchar*)rng->k);
-    hmac_sha256_write(&hmac, (uchar*)rng->v, 32);
-    hmac_sha256_finalize(&hmac, (uchar*)rng->v);
+    uint rkey[16] = {0};
+    for (int i = 0; i < 8; i++)
+    {
+        rkey[i] = rng->k[i];
+    }
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->outer.s[i] = sha_initial[i];
+    }
+    hmac->outer.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c;
+    }
+    sha256_write(&hmac->outer, (uchar*)rkey, 64);
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->inner.s[i] = sha_initial[i];
+    }
+    hmac->inner.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c ^ 0x36363636;
+    }
+    sha256_write(&hmac->inner, (uchar*)rkey, 64);
+
+
+    sha256_write(&hmac->inner, (uchar*)rng->v, 32);
+    sha256_write(&hmac->inner, zero, 1);
+    sha256_write(&hmac->inner, key, 80);
+    sha256_finalize(&hmac->inner, temp);
+    sha256_write(&hmac->outer, temp, 32);
+    sha256_finalize(&hmac->outer, rng->k);
+
+    for (int i = 0; i < 8; i++)
+    {
+        rkey[i] = rng->k[i];
+    }
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->outer.s[i] = sha_initial[i];
+    }
+    hmac->outer.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c;
+    }
+    sha256_write(&hmac->outer, (uchar*)rkey, 64);
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->inner.s[i] = sha_initial[i];
+    }
+    hmac->inner.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c ^ 0x36363636;
+    }
+    sha256_write(&hmac->inner, (uchar*)rkey, 64);
+
+    sha256_write(&hmac->inner, (uchar*)rng->v, 32);
+    sha256_finalize(&hmac->inner, temp);
+    sha256_write(&hmac->outer, temp, 32);
+    sha256_finalize(&hmac->outer, rng->v);
 
     // RFC6979 3.2.f.
-    hmac_sha256_initialize(&hmac, (uchar*)rng->k);
-    hmac_sha256_write(&hmac, (uchar*)rng->v, 32);
-    hmac_sha256_write(&hmac, one, 1);
-    hmac_sha256_write(&hmac, key, 80);
-    hmac_sha256_finalize(&hmac, (uchar*)rng->k);
-    hmac_sha256_initialize(&hmac, (uchar*)rng->k);
-    hmac_sha256_write(&hmac, (uchar*)rng->v, 32);
-    hmac_sha256_finalize(&hmac, (uchar*)rng->v);
-}
-
-static void rfc6979_hmac_sha256_generate(rfc6979_hmac_sha256X *rng, uchar *out, size_t outlen)
-{
-    // RFC6979 3.2.h.
-    while (outlen > 0)
+    for (int i = 0; i < 8; i++)
     {
-        hmac_sha256X hmac;
-        int now = outlen;
-        hmac_sha256_initialize(&hmac, (uchar*)rng->k);
-        hmac_sha256_write(&hmac, (uchar*)rng->v, 32);
-        hmac_sha256_finalize(&hmac, (uchar*)rng->v);
-        if (now > 32)
-        {
-            now = 32;
-        }
-        memcpy(out, (uchar*)rng->v, now);
-        out += now;
-        outlen -= now;
+        rkey[i] = rng->k[i];
     }
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->outer.s[i] = sha_initial[i];
+    }
+    hmac->outer.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c;
+    }
+    sha256_write(&hmac->outer, (uchar*)rkey, 64);
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->inner.s[i] = sha_initial[i];
+    }
+    hmac->inner.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c ^ 0x36363636;
+    }
+    sha256_write(&hmac->inner, (uchar*)rkey, 64);
+
+    sha256_write(&hmac->inner, (uchar*)rng->v, 32);
+    sha256_write(&hmac->inner, one, 1);
+    sha256_write(&hmac->inner, key, 80);
+    sha256_finalize(&hmac->inner, temp);
+    sha256_write(&hmac->outer, temp, 32);
+    sha256_finalize(&hmac->outer, rng->k);
+
+    for (int i = 0; i < 8; i++)
+    {
+        rkey[i] = rng->k[i];
+    }
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->outer.s[i] = sha_initial[i];
+    }
+    hmac->outer.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c;
+    }
+    sha256_write(&hmac->outer, (uchar*)rkey, 64);
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->inner.s[i] = sha_initial[i];
+    }
+    hmac->inner.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c ^ 0x36363636;
+    }
+    sha256_write(&hmac->inner, (uchar*)rkey, 64);
+
+    sha256_write(&hmac->inner, (uchar*)rng->v, 32);
+    sha256_finalize(&hmac->inner, temp);
+    sha256_write(&hmac->outer, temp, 32);
+    sha256_finalize(&hmac->outer, rng->v);
+
+    rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
+    // RFC6979 3.2.h.
+    hmac_sha256X hmac;
+    for (int i = 0; i < 8; i++)
+    {
+        rkey[i] = rng->k[i];
+    }
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->outer.s[i] = sha_initial[i];
+    }
+    hmac->outer.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c;
+    }
+    sha256_write(&hmac->outer, (uchar*)rkey, 64);
+    // initialise
+    for (int i = 0; i < 8; ++i)
+    {
+        hmac->inner.s[i] = sha_initial[i];
+    }
+    hmac->inner.bytes = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        rkey[i] ^= 0x5c5c5c5c ^ 0x36363636;
+    }
+    sha256_write(&hmac->inner, (uchar*)rkey, 64);
+
+    sha256_write(&hmac->inner, (uchar*)rng->v, 32);
+    sha256_finalize(&hmac->inner, temp);
+    sha256_write(&hmac->outer, temp, 32);
+    sha256_finalize(&hmac->outer, rng->v);
+    memcpy(nonce32, (uchar*)rng->v, 32);
+    overflow = scalar_set_b32(k, nonce32);
 }
 
 static inline int field_element_equal(uint *a, uint *b)
@@ -10605,16 +10697,12 @@ void search(
     }
 
     uint k[8];
-    uchar nonce32[32];
     uchar keydata[112];
-    rfc6979_hmac_sha256X rng;
     memcpy32((uint*)keydata, miningHash, 8);
     memcpy32((uint*)(keydata +32), signHash, 8);
     uchar algo16[17] = "Schnorr+SHA256  ";
     memcpy32((uint*)(keydata + 64), (uint*)algo16, 4);
-    rfc6979_hmac_sha256_initialize(&rng, keydata);
-    rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
-    overflow = scalar_set_b32(k, nonce32);
+    rfc6979_hmac_sha256(keydata, k);
     if (overflow | scalar_is_zero(k))
     {
         return;
