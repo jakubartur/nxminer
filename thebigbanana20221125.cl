@@ -8941,7 +8941,7 @@ void field_element_mul( uint *r, uint *a, uint * RESTRICT b ) field_element_mul_
     uint m1 = 2 * (m + 1);              \
     r[0] = 0x3FFFC2FU * m1;             \
     r[0] -= a[0];                       \
-    r[1] = 0x3FFFFBFU * m1              \
+    r[1] = 0x3FFFFBFU * m1;             \
     r[1] -= a[1];                       \
     r[2] = 0x3FFFFFFU * m1;             \
     r[2] -= a[2];                       \
