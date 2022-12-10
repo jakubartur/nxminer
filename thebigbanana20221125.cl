@@ -9981,7 +9981,7 @@ static inline void sha256(uchar *message, uint len, uchar *digest)
     digest[7] = BE32(s7);                                                   \
 }
 
-static void rfc6979_hmac_sha256(uchar *key, uint* k)
+static inline int rfc6979_hmac_sha256(uchar *key, uint* k)
 {
     uchar nonce32[32];
     rfc6979_hmac_sha256X rng;
@@ -10166,7 +10166,7 @@ static void rfc6979_hmac_sha256(uchar *key, uint* k)
     sha256_write(&hmac->outer, temp, 32);
     sha256_finalize(&hmac->outer, rng->v);
     memcpy(nonce32, (uchar*)rng->v, 32);
-    overflow = scalar_set_b32(k, nonce32);
+    return scalar_set_b32(k, nonce32);
 }
 
 static inline int field_element_equal(uint *a, uint *b)
@@ -10702,7 +10702,7 @@ void search(
     memcpy32((uint*)(keydata +32), signHash, 8);
     uchar algo16[17] = "Schnorr+SHA256  ";
     memcpy32((uint*)(keydata + 64), (uint*)algo16, 4);
-    rfc6979_hmac_sha256(keydata, k);
+    overflow = rfc6979_hmac_sha256(keydata, k);
     if (overflow | scalar_is_zero(k))
     {
         return;
