@@ -8924,30 +8924,41 @@ void field_element_mul( uint *r, uint *a, uint * RESTRICT b ) field_element_mul_
 
 #define field_element_add(r,a)  \
 {                               \
-    r[0] += a[0];           \
-    r[1] += a[1];           \
-    r[2] += a[2];           \
-    r[3] += a[3];           \
-    r[4] += a[4];           \
-    r[5] += a[5];           \
-    r[6] += a[6];           \
-    r[7] += a[7];           \
-    r[8] += a[8];           \
-    r[9] += a[9];           \
+    r[0] += a[0];               \
+    r[1] += a[1];               \
+    r[2] += a[2];               \
+    r[3] += a[3];               \
+    r[4] += a[4];               \
+    r[5] += a[5];               \
+    r[6] += a[6];               \
+    r[7] += a[7];               \
+    r[8] += a[8];               \
+    r[9] += a[9];               \
 }
 
-#define field_element_negate(r,  a, m)          \
-{                                               \
-    r[0] = 0x3FFFC2FU * 2 * (m + 1) - a[0]; \
-    r[1] = 0x3FFFFBFU * 2 * (m + 1) - a[1]; \
-    r[2] = 0x3FFFFFFU * 2 * (m + 1) - a[2]; \
-    r[3] = 0x3FFFFFFU * 2 * (m + 1) - a[3]; \
-    r[4] = 0x3FFFFFFU * 2 * (m + 1) - a[4]; \
-    r[5] = 0x3FFFFFFU * 2 * (m + 1) - a[5]; \
-    r[6] = 0x3FFFFFFU * 2 * (m + 1) - a[6]; \
-    r[7] = 0x3FFFFFFU * 2 * (m + 1) - a[7]; \
-    r[8] = 0x3FFFFFFU * 2 * (m + 1) - a[8]; \
-    r[9] = 0x03FFFFFU * 2 * (m + 1) - a[9]; \
+#define field_element_negate(r, a, m)   \
+{                                       \
+    uint m1 = 2 * (m + 1);              \
+    r[0] = 0x3FFFC2FU * m1;             \
+    r[0] -= a[0];                       \
+    r[1] = 0x3FFFFBFU * m1              \
+    r[1] -= a[1];                       \
+    r[2] = 0x3FFFFFFU * m1;             \
+    r[2] -= a[2];                       \
+    r[3] = 0x3FFFFFFU * m1;             \
+    r[3] -= a[3];                       \
+    r[4] = 0x3FFFFFFU * m1;             \
+    r[4] -= a[4];                       \
+    r[5] = 0x3FFFFFFU * m1;             \
+    r[5] -= a[5];                       \
+    r[6] = 0x3FFFFFFU * m1;             \
+    r[6] -= a[6];                       \
+    r[7] = 0x3FFFFFFU * m1;             \
+    r[7] -= a[7];                       \
+    r[8] = 0x3FFFFFFU * m1;             \
+    r[8] -= a[8];                       \
+    r[9] = 0x03FFFFFU * m1;             \
+    r[9] -= a[9];                       \
 }
 
 static inline int field_element_normalizes_to_zero(uint *r)
@@ -8981,16 +8992,16 @@ static inline int field_element_normalizes_to_zero(uint *r)
 
 #define field_element_mul_int(r, a) \
 {                                   \
-    r[0] *= a;                    \
-    r[1] *= a;                    \
-    r[2] *= a;                    \
-    r[3] *= a;                    \
-    r[4] *= a;                    \
-    r[5] *= a;                    \
-    r[6] *= a;                    \
-    r[7] *= a;                    \
-    r[8] *= a;                    \
-    r[9] *= a;                    \
+    r[0] *= a;                      \
+    r[1] *= a;                      \
+    r[2] *= a;                      \
+    r[3] *= a;                      \
+    r[4] *= a;                      \
+    r[5] *= a;                      \
+    r[6] *= a;                      \
+    r[7] *= a;                      \
+    r[8] *= a;                      \
+    r[9] *= a;                      \
 }
 
 #define field_element_cmov( r, a )  \
@@ -9428,7 +9439,8 @@ static inline void modinv32_update_fg_30(modinv32_signed30X *f, modinv32_signed3
     /* Now iteratively compute limb i=1..8 of t*[f,g], and store them in output limb i-1 (shifting
      * down by 30 bits). */
 	#pragma unroll
-    for (i = 1; i < 9; ++i) {
+    for (i = 1; i < 9; ++i)
+    {
         fi = f->v[i];
         gi = g->v[i];
 		madi_opt( cf, u, fi );
